@@ -68,6 +68,20 @@ SOFTWARE.
 
 ---
 
+## 📦 Third-Party Dependencies
+
+This project relies on several open-source JavaScript libraries for PDF rendering, editing, and file handling.
+
+- 📄 **Dependency overview & usage**:  
+  [`docs/Dependencies.md`](docs/Dependencies.md)
+
+- ⚖️ **Third-party license texts**:  
+  [`3rd-party-licenses.md.md`](3rd-party-licenses.md.md)
+
+All dependencies are used in compliance with their respective licenses.
+
+---
+
 ## 🚀 Static Deployment
 
 This project is designed to be deployed as a **static site**.

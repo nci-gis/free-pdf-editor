@@ -9,9 +9,9 @@ import { sveltePreprocess } from 'svelte-preprocess';
 import css from 'rollup-plugin-css-only';
 import copy from 'rollup-plugin-copy';
 import { string } from 'rollup-plugin-string';
-import { createRequire } from 'module';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -66,10 +66,11 @@ export default {
         { src: 'src/assets/fonts/*', dest: 'public/assets/fonts' },
       ],
       hook: 'writeBundle',
+      copyOnce: true, // Only copy once in watch mode to prevent rebuild loops
     }),
 
     !production && serve(),
-    !production && livereload('public'),
+    !production && livereload('public/build'),
     production && terser(),
   ],
   watch: {
@@ -85,7 +86,7 @@ function serve() {
       if (!started) {
         started = true;
 
-        import('child_process').then(({ spawn }) => {
+        import('node:child_process').then(({ spawn }) => {
           spawn('pnpm', ['start', '--', '--dev'], {
             stdio: ['ignore', 'inherit', 'inherit'],
             shell: true,

@@ -1,7 +1,7 @@
 <svelte:options immutable={true} />
 
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
   import Toolbar from './Toolbar.svelte';
   import { pannable } from '@src/utils/pannable.js';
   import { tapout } from '@src/utils/tapout.js';
@@ -11,24 +11,17 @@
   import LineHeightIcon from '@src/assets/icons/LineHeightIcon.svelte';
   import TextIcon from '@src/assets/icons/TextIcon.svelte';
   import TextFamilyIcon from '@src/assets/icons/TextFamilyIcon.svelte';
-  export let size;
-  export let text;
-  export let lineHeight;
-  export let x;
-  export let y;
-  export let fontFamily;
-  export let pageScale = 1;
+  let { size, text, lineHeight, x, y, fontFamily, pageScale = 1, onupdate, ondelete, onselectfont } = $props();
   const Families = Object.keys(Fonts);
-  const dispatch = createEventDispatcher();
-  let startX;
-  let startY;
-  let editable;
-  let _size = size;
-  let _lineHeight = lineHeight;
-  let _fontFamily = fontFamily;
-  let dx = 0;
-  let dy = 0;
-  let operation = '';
+  let startX = $state();
+  let startY = $state();
+  let editable = $state();
+  let _size = $state(size);
+  let _lineHeight = $state(lineHeight);
+  let _fontFamily = $state(fontFamily);
+  let dx = $state(0);
+  let dy = $state(0);
+  let operation = $state('');
   function handlePanMove(event) {
     dx = (event.detail.x - startX) / pageScale;
     dy = (event.detail.y - startY) / pageScale;
@@ -38,7 +31,7 @@
     if (dx === 0 && dy === 0) {
       return editable.focus();
     }
-    dispatch('update', {
+    onupdate?.({
       x: x + dx,
       y: y + dy,
     });
@@ -58,7 +51,7 @@
     if (operation !== 'edit' || operation === 'tool') return;
     editable.blur();
     sanitize();
-    dispatch('update', {
+    onupdate?.({
       lines: extractLines(),
       width: editable.clientWidth,
     });
@@ -108,7 +101,7 @@
   }
   async function onBlurTool() {
     if (operation !== 'tool' || operation === 'edit') return;
-    dispatch('update', {
+    onupdate?.({
       lines: extractLines(),
       lineHeight: _lineHeight,
       size: _size,
@@ -123,7 +116,7 @@
     }
   }
   function onChangeFont() {
-    dispatch('selectFont', {
+    onselectfont?.({
       name: _fontFamily,
     });
   }
@@ -147,8 +140,8 @@
     lines.push(lineText);
     return lines;
   }
-  function onDelete() {
-    dispatch('delete');
+  function handleDelete() {
+    ondelete?.();
   }
   onMount(render);
 </script>
@@ -157,9 +150,9 @@
   <Toolbar>
     <div
       use:tapout
-      on:tapout={onBlurTool}
-      on:mousedown={onFocusTool}
-      on:touchstart={onFocusTool}
+      ontapout={onBlurTool}
+      onmousedown={onFocusTool}
+      ontouchstart={onFocusTool}
       class="h-full flex justify-center items-center bg-gray-300 border-b
       border-gray-400"
     >
@@ -188,7 +181,7 @@
       <div class="mr-2 flex items-center">
         <TextFamilyIcon class="w-4 h-4 mr-2" />
         <div class="relative w-32 md:w-40">
-          <select bind:value={_fontFamily} on:change={onChangeFont} class="font-family">
+          <select bind:value={_fontFamily} onchange={onChangeFont} class="font-family">
             {#each Families as family}
               <option value={family}>{family}</option>
             {/each}
@@ -206,7 +199,7 @@
           </div>
         </div>
       </div>
-      <div on:click={onDelete} class="w-5 h-5 rounded-full bg-white cursor-pointer">
+      <div onclick={handleDelete} class="w-5 h-5 rounded-full bg-white cursor-pointer">
         <DeleteIcon class="w-full h-full text-red-500" />
       </div>
     </div>
@@ -214,15 +207,12 @@
 {/if}
 <div
   use:tapout
-  on:tapout={onBlur}
+  ontapout={onBlur}
   class="absolute left-0 top-0 select-none"
   style="transform: translate({x + dx}px, {y + dy}px);"
 >
   <div
-    use:pannable
-    on:panstart={handlePanStart}
-    on:panmove={handlePanMove}
-    on:panend={handlePanEnd}
+    use:pannable={{ onpanstart: handlePanStart, onpanmove: handlePanMove, onpanend: handlePanEnd }}
     class="absolute w-full h-full cursor-grab border border-dotted
     border-gray-500"
     class:cursor-grab={!operation}
@@ -231,9 +221,12 @@
   />
   <div
     bind:this={editable}
-    on:focus={onFocus}
-    on:keydown={onKeydown}
-    on:paste|preventDefault={onPaste}
+    onfocus={onFocus}
+    onkeydown={onKeydown}
+    onpaste={(event) => {
+      event.preventDefault();
+      onPaste(event);
+    }}
     contenteditable="true"
     spellcheck="false"
     class="outline-none whitespace-no-wrap"

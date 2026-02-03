@@ -4,17 +4,23 @@
   import { tapout } from '@src/utils/tapout.js';
   import { tips, TIPS_STORAGE_KEY } from '@src/config/tips.js';
 
-  let isOpen = false;
-  let isDragging = false;
-  let hasMoved = false;
-  let buttonEl;
+  let { isOpen = $bindable(false) } = $props();
+  let isDragging = $state(false);
+  let hasMoved = $state(false);
+  let buttonEl = $state();
+
+  // Popup drag state
+  let isPopupDragging = $state(false);
+  let popupDragStart = $state({ x: 0, y: 0 });
+  let popupInitialPos = $state({ x: 0, y: 0 });
+  let popupPosition = $state({ x: null, y: null });
 
   // Position state (null means use default bottom-right)
-  let position = { x: null, y: null };
+  let position = $state({ x: null, y: null });
 
   // Drag state
-  let dragStart = { x: 0, y: 0 };
-  let initialPos = { x: 0, y: 0 };
+  let dragStart = $state({ x: 0, y: 0 });
+  let initialPos = $state({ x: 0, y: 0 });
 
   const BUTTON_SIZE = 48;
   const MARGIN = 24;
@@ -120,16 +126,20 @@
   }
 
   // Compute button style
-  $: buttonStyle =
+  let buttonStyle = $derived(
     position.x !== null && position.y !== null
       ? `left: ${position.x}px; top: ${position.y}px;`
-      : `bottom: ${MARGIN}px; right: ${MARGIN}px;`;
+      : `bottom: ${MARGIN}px; right: ${MARGIN}px;`
+  );
 
   // Compute popup position relative to button
-  $: popupStyle =
-    position.x !== null && position.y !== null
-      ? computePopupPosition(position.x, position.y)
-      : `bottom: ${MARGIN + BUTTON_SIZE + 12}px; right: ${MARGIN}px;`;
+  let popupStyle = $derived(
+    popupPosition.x !== null && popupPosition.y !== null
+      ? `left: ${popupPosition.x}px; top: ${popupPosition.y}px;`
+      : position.x !== null && position.y !== null
+        ? computePopupPosition(position.x, position.y)
+        : `bottom: ${MARGIN + BUTTON_SIZE + 12}px; right: ${MARGIN}px;`
+  );
 
   function computePopupPosition(bx, by) {
     const popupWidth = 320;
@@ -150,25 +160,74 @@
 
     return `left: ${left}px; top: ${top}px;`;
   }
+
+  function handlePopupDragStart(e) {
+    if (e.button !== 0) return; // Only left click
+    
+    isPopupDragging = true;
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    popupDragStart = { x: clientX, y: clientY };
+    
+    // Get current popup position from the element
+    const popup = e.currentTarget.closest('.tips-popup');
+    const rect = popup.getBoundingClientRect();
+    popupInitialPos = { x: rect.left, y: rect.top };
+    
+    e.preventDefault();
+  }
+
+  function handlePopupDragMove(e) {
+    if (!isPopupDragging) return;
+    
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    
+    const dx = clientX - popupDragStart.x;
+    const dy = clientY - popupDragStart.y;
+    
+    const newX = Math.max(0, Math.min(popupInitialPos.x + dx, window.innerWidth - 320));
+    const newY = Math.max(0, Math.min(popupInitialPos.y + dy, window.innerHeight - 200));
+    
+    popupPosition = { x: newX, y: newY };
+  }
+
+  function handlePopupDragEnd() {
+    isPopupDragging = false;
+  }
 </script>
 
 <svelte:window
-  on:mousemove={handlePointerMove}
-  on:mouseup={handlePointerUp}
-  on:touchmove={handlePointerMove}
-  on:touchend={handlePointerUp}
+  onmousemove={(e) => {
+    handlePointerMove(e);
+    handlePopupDragMove(e);
+  }}
+  onmouseup={(e) => {
+    handlePointerUp();
+    handlePopupDragEnd();
+  }}
+  ontouchmove={(e) => {
+    handlePointerMove(e);
+    handlePopupDragMove(e);
+  }}
+  ontouchend={(e) => {
+    handlePointerUp();
+    handlePopupDragEnd();
+  }}
 />
 
 <!-- Floating Tips Button -->
 <div bind:this={buttonEl} class="fixed z-40" style={buttonStyle}>
   <button
-    on:mousedown={handlePointerDown}
-    on:touchstart={handlePointerDown}
-    on:click={handleClick}
+    onmousedown={handlePointerDown}
+    ontouchstart={handlePointerDown}
+    onclick={handleClick}
     class="w-12 h-12 rounded-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700
     text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center
     {isDragging ? 'cursor-grabbing scale-110' : 'cursor-grab'}"
-    title="Quick Tips (drag to move)"
+    title="Quick Tips - Press F1 (drag to move)"
     aria-label="Show tips"
   >
     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -187,8 +246,8 @@
   <div
     transition:fade={{ duration: 150 }}
     class="fixed inset-0 z-50 bg-black/30"
-    on:click={close}
-    on:keydown={(e) => e.key === 'Escape' && close()}
+    onclick={close}
+    onkeydown={(e) => e.key === 'Escape' && close()}
     role="button"
     tabindex="-1"
     aria-label="Close tips"
@@ -196,13 +255,18 @@
 
   <div
     use:tapout
-    on:tapout={close}
+    ontapout={close}
     transition:fly={{ y: 20, duration: 200 }}
-    class="fixed z-50 bg-white rounded-xl shadow-2xl overflow-hidden"
+    class="fixed z-50 bg-white rounded-xl shadow-2xl overflow-hidden tips-popup"
     style="{popupStyle} width: 320px; max-height: calc(100vh - 8rem);"
   >
-    <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 bg-amber-500 text-white">
+    <!-- Header (Draggable) -->
+    <div
+      onmousedown={handlePopupDragStart}
+      ontouchstart={handlePopupDragStart}
+      class="flex items-center justify-between px-4 py-3 bg-amber-500 text-white {isPopupDragging ? 'cursor-grabbing' : 'cursor-grab'}"
+      title="Drag to move"
+    >
       <div class="flex items-center gap-2">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -215,7 +279,7 @@
         <span class="font-semibold">Quick Tips</span>
       </div>
       <button
-        on:click={close}
+        onclick={close}
         class="w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
         aria-label="Close"
       >
@@ -244,10 +308,10 @@
 
     <!-- Footer -->
     <div class="px-4 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
-      <p class="text-xs text-gray-400">All edits happen in your browser</p>
+      <p class="text-xs text-gray-400">Press F1 to toggle</p>
       {#if position.x !== null}
         <button
-          on:click={resetPosition}
+          onclick={resetPosition}
           class="text-xs text-gray-400 hover:text-gray-600 underline"
           title="Reset button to default position"
         >

@@ -1,13 +1,9 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
   import { fade, scale } from 'svelte/transition';
 
-  export let recentFiles = [];
-  export let loading = false;
-
-  const dispatch = createEventDispatcher();
-  let isDragOver = false;
-  let dragCounter = 0;
+  let { recentFiles = [], loading = false, onupload, onrecent } = $props();
+  let isDragOver = $state(false);
+  let dragCounter = $state(0);
 
   function handleDragEnter(e) {
     e.preventDefault();
@@ -33,20 +29,20 @@
     dragCounter = 0;
     const files = e.dataTransfer?.files;
     if (files?.length > 0) {
-      dispatch('upload', { files });
+      onupload?.({ files });
     }
   }
 
   function handleFileSelect(e) {
     const files = e.target.files;
     if (files?.length > 0) {
-      dispatch('upload', { files });
+      onupload?.({ files });
     }
     e.target.value = null;
   }
 
   function handleRecentClick(file) {
-    dispatch('recent', { file });
+    onrecent?.({ file });
   }
 
   function formatDate(timestamp) {
@@ -64,10 +60,10 @@
   class="w-full max-w-2xl mx-auto flex flex-col items-center"
   role="region"
   aria-label="PDF upload area"
-  on:dragenter={handleDragEnter}
-  on:dragleave={handleDragLeave}
-  on:dragover={handleDragOver}
-  on:drop={handleDrop}
+  ondragenter={handleDragEnter}
+  ondragleave={handleDragLeave}
+  ondragover={handleDragOver}
+  ondrop={handleDrop}
 >
   <div
     class="w-full p-12 border-2 border-dashed rounded-xl transition-all duration-300 flex flex-col items-center justify-center gap-4
@@ -99,7 +95,7 @@
       </div>
 
       <label class="cursor-pointer">
-        <input type="file" accept="application/pdf" class="hidden" on:change={handleFileSelect} />
+        <input type="file" accept="application/pdf" class="hidden" onchange={handleFileSelect} />
         <span
           class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium rounded-lg transition-colors shadow-sm"
         >
@@ -134,7 +130,7 @@
         {#each recentFiles as file}
           <button
             class="w-full flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left group"
-            on:click={() => handleRecentClick(file)}
+            onclick={() => handleRecentClick(file)}
           >
             <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
               <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">

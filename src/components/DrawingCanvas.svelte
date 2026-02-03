@@ -1,17 +1,16 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
   import { pannable } from '@src/utils/pannable.js';
-  const dispatch = createEventDispatcher();
-  let canvas;
-  let x = 0;
-  let y = 0;
-  let path = '';
-  let minX = Infinity;
-  let maxX = 0;
-  let minY = Infinity;
-  let maxY = 0;
-  let paths = [];
-  let drawing = false;
+  let { onfinish, oncancel } = $props();
+  let canvas = $state();
+  let x = $state(0);
+  let y = $state(0);
+  let path = $state('');
+  let minX = $state(Infinity);
+  let maxX = $state(0);
+  let minY = $state(Infinity);
+  let maxY = $state(0);
+  let paths = $state([]);
+  let drawing = $state(false);
   function handlePanStart(event) {
     if (event.detail.target !== canvas) {
       return (drawing = false);
@@ -46,7 +45,7 @@
     const dy = -(minY - 10);
     const width = maxX - minX + 20;
     const height = maxY - minY + 20;
-    dispatch('finish', {
+    onfinish?.({
       originWidth: width,
       originHeight: height,
       path: paths.reduce((acc, cur) => {
@@ -55,28 +54,25 @@
     });
   }
   function cancel() {
-    dispatch('cancel');
+    oncancel?.();
   }
 </script>
 
 <div
   bind:this={canvas}
-  use:pannable
-  on:panstart={handlePanStart}
-  on:panmove={handlePanMove}
-  on:panend={handlePanEnd}
+  use:pannable={{ onpanstart: handlePanStart, onpanmove: handlePanMove, onpanend: handlePanEnd }}
   class="relative w-full h-full select-none"
 >
   <div class="absolute right-0 bottom-0 mr-4 mb-4 flex">
     <button
-      on:click={cancel}
+      onclick={cancel}
       class=" w-24 bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-4
       rounded mr-4"
     >
       Cancel
     </button>
     <button
-      on:click={finish}
+      onclick={finish}
       class="w-24 bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-4
       rounded"
     >

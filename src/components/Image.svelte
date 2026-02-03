@@ -1,27 +1,20 @@
 <svelte:options immutable={true} />
 
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
   import { pannable } from '@src/utils/pannable.js';
   import DeleteIcon from '@src/assets/icons/DeleteIcon.svelte';
-  export let payload;
-  export let file;
-  export let width;
-  export let height;
-  export let x;
-  export let y;
-  export let pageScale = 1;
-  const dispatch = createEventDispatcher();
-  let startX;
-  let startY;
-  let canvas;
-  let operation = '';
-  let direction = '';
-  let dx = 0;
-  let dy = 0;
-  let dw = 0;
-  let dh = 0;
-  let ratio = null;
+  let { payload, file, width, height, x, y, pageScale = 1, onupdate, ondelete } = $props();
+  let startX = $state();
+  let startY = $state();
+  let canvas = $state();
+  let operation = $state('');
+  let direction = $state('');
+  let dx = $state(0);
+  let dy = $state(0);
+  let dw = $state(0);
+  let dh = $state(0);
+  let ratio = $state(null);
   async function render() {
     // use canvas to prevent img tag's auto resize
     canvas.width = width;
@@ -35,13 +28,13 @@
     if (height > limit) {
       scale = Math.min(scale, limit / height);
     }
-    dispatch('update', {
+    onupdate?.({
       width: width * scale,
       height: height * scale,
     });
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       canvas.toBlob((blob) => {
-        dispatch('update', {
+        onupdate?.({
           file: blob,
         });
       });
@@ -112,14 +105,14 @@
 
   function handlePanEnd(_event) {
     if (operation === 'move') {
-      dispatch('update', {
+      onupdate?.({
         x: x + dx,
         y: y + dy,
       });
       dx = 0;
       dy = 0;
     } else if (operation === 'scale') {
-      dispatch('update', {
+      onupdate?.({
         x: x + dx,
         y: y + dy,
         width: width + dw,
@@ -150,8 +143,8 @@
     operation = 'scale';
     direction = event.detail.target.dataset.direction;
   }
-  function onDelete() {
-    dispatch('delete');
+  function handleDelete() {
+    ondelete?.();
   }
   onMount(render);
   onMount(() => {
@@ -183,10 +176,7 @@
   {y + dy}px);"
 >
   <div
-    use:pannable
-    on:panstart={handlePanStart}
-    on:panmove={handlePanMove}
-    on:panend={handlePanEnd}
+    use:pannable={{ onpanstart: handlePanStart, onpanmove: handlePanMove, onpanend: handlePanEnd }}
     class="absolute w-full h-full cursor-grab"
     class:cursor-grabbing={operation === 'move'}
     class:operation
@@ -217,7 +207,7 @@
     />
   </div>
   <div
-    on:click={onDelete}
+    onclick={handleDelete}
     class="absolute left-0 top-0 right-0 w-12 h-12 m-auto rounded-full bg-white
     cursor-pointer transform -translate-y-1/2 md:scale-25"
   >

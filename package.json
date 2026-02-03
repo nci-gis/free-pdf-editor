@@ -6,7 +6,8 @@
   "homepage": "",
   "keywords": [
     "pdf",
-    "editor"
+    "editor",
+    "offline"
   ],
   "scripts": {
     "build": "rollup -c",
