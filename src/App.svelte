@@ -15,21 +15,31 @@
   import { ggID } from './utils/helper.js';
   import { save } from './utils/PDF.js';
   import { getRecentFiles, addRecentFile } from './utils/recentFiles.js';
+  import { EditableTextLayer, WelcomeModal, extractTextFromPage, groupTextIntoLines } from './libs/textReplace';
 
   const genID = ggID();
-  let pdfFile;
-  let pdfName = '';
-  let pages = [];
-  let pagesScale = [];
-  let allObjects = [];
-  let currentFont = 'Times-Roman';
-  let selectedPageIndex = -1;
-  let saving = false;
-  let saveProgress = 0;
-  let addingDrawing = false;
-  let loading = false;
-  let recentFiles = [];
-  let toast = null;
+  let pdfFile = $state();
+  let pdfName = $state('');
+  let pages = $state([]);
+  let pagesScale = $state([]);
+  let allObjects = $state([]);
+  let currentFont = $state('Times-Roman');
+  let selectedPageIndex = $state(-1);
+  let saving = $state(false);
+  let saveProgress = $state(0);
+  let addingDrawing = $state(false);
+  let loading = $state(false);
+  let recentFiles = $state([]);
+  let toast = $state(null);
+
+  // Replace text mode state
+  let editMode = $state(false);
+  let extractedTextByPage = $state([]);
+  let editedTextByPage = $state([]);
+  let textExtractionInProgress = $state(false);
+  let debugOverlay = $state(false); // Show detected text blocks overlay
+  let showWelcomeModal = $state(false); // Welcome popup for replace text mode
+  let showTips = $state(false); // Tips popup
 
   onMount(() => {
     recentFiles = getRecentFiles();
@@ -49,10 +59,83 @@
       e.preventDefault();
       savePDF();
     }
+    // Toggle Tips with F1
+    if (e.key === 'F1') {
+      e.preventDefault();
+      showTips = !showTips;
+    }
+    // Toggle edit mode with E key
+    if (e.key === 'e' && !e.ctrlKey && !e.metaKey && pages.length > 0) {
+      const target = e.target;
+      // Don't trigger if typing in an input or contenteditable
+      if (target.tagName !== 'INPUT' && !target.isContentEditable) {
+        toggleEditMode();
+      }
+    }
+    // Toggle debug overlay with D key (only in edit mode)
+    if (e.key === 'd' && !e.ctrlKey && !e.metaKey && editMode) {
+      const target = e.target;
+      if (target.tagName !== 'INPUT' && !target.isContentEditable) {
+        debugOverlay = !debugOverlay;
+        showToast(debugOverlay ? 'Debug overlay enabled' : 'Debug overlay disabled', 'info', 1500);
+      }
+    }
   }
 
-  async function onUploadPDF(e) {
-    const files = e.target?.files || e.detail?.files || (e.dataTransfer && e.dataTransfer.files);
+  // Replace text mode functions
+  async function toggleEditMode() {
+    if (!editMode) {
+      await enterEditMode();
+    } else {
+      exitEditMode();
+    }
+  }
+
+  async function enterEditMode() {
+    if (textExtractionInProgress) return;
+    textExtractionInProgress = true;
+
+    try {
+      // Extract text from all pages
+      const extracted = await Promise.all(
+        pages.map(async (page) => {
+          const items = await extractTextFromPage(page);
+          return groupTextIntoLines(items);
+        })
+      );
+      extractedTextByPage = extracted;
+      editedTextByPage = pages.map(() => new Map());
+      editMode = true;
+      showWelcomeModal = true; // Show welcome popup (will auto-close if already seen)
+    } catch (e) {
+      console.error('Failed to extract text:', e);
+      showToast('Failed to extract text from PDF', 'error');
+    } finally {
+      textExtractionInProgress = false;
+    }
+  }
+
+  function exitEditMode() {
+    editMode = false;
+    debugOverlay = false;
+    // Keep editedTextByPage for saving
+    const editCount = editedTextByPage.reduce((sum, map) => sum + map.size, 0);
+    if (editCount > 0) {
+      showToast(`Replace text mode disabled. ${editCount} change(s) will be saved.`, 'info', 3000);
+    } else {
+      showToast('Replace text mode disabled', 'info', 2000);
+    }
+  }
+
+  function updateEditedText(pageIndex, detail) {
+    const { id, ...editData } = detail;
+    editedTextByPage[pageIndex].set(id, editData);
+    editedTextByPage = [...editedTextByPage]; // Trigger reactivity
+  }
+
+  async function onUploadPDF(eventOrDetail) {
+    // Handle both DOM events (from <input>) and callback prop detail (from DropZone)
+    const files = eventOrDetail.target?.files || eventOrDetail.files;
     const file = files?.[0];
     if (!file || file.type !== 'application/pdf') {
       if (file) showToast('Please select a valid PDF file', 'error');
@@ -84,6 +167,10 @@
         .map((_, i) => pdf.getPage(i + 1));
       allObjects = pages.map(() => []);
       pagesScale = Array(numPages).fill(1);
+      // Reset edit mode state
+      editMode = false;
+      extractedTextByPage = [];
+      editedTextByPage = [];
     } catch (e) {
       console.log('Failed to add pdf.');
       throw e;
@@ -166,8 +253,8 @@
     allObjects = allObjects.map((objects, pIndex) => (pIndex === selectedPageIndex ? [...objects, object] : objects));
   }
 
-  function selectFontFamily(event) {
-    const name = event.detail.name;
+  function selectFontFamily(detail) {
+    const name = detail.name;
     fetchFont(name);
     currentFont = name;
   }
@@ -199,10 +286,12 @@
     saving = true;
     saveProgress = 0;
     try {
-      await save(pdfFile, allObjects, pdfName, (progress) => {
+      await save(pdfFile, allObjects, editedTextByPage, pdfName, (progress) => {
         saveProgress = progress;
       });
       showToast('PDF saved successfully!', 'success');
+      // Clear edited text after successful save
+      editedTextByPage = pages.map(() => new Map());
     } catch (e) {
       console.log(e);
       showToast('Failed to save PDF', 'error');
@@ -214,10 +303,13 @@
 </script>
 
 <svelte:window
-  on:dragenter|preventDefault
-  on:dragover|preventDefault
-  on:drop|preventDefault={onUploadPDF}
-  on:keydown={handleKeydown}
+  ondragenter={(e) => e.preventDefault()}
+  ondragover={(e) => e.preventDefault()}
+  ondrop={(e) => {
+    e.preventDefault();
+    onUploadPDF(e);
+  }}
+  onkeydown={handleKeydown}
 />
 <Tailwind />
 
@@ -225,7 +317,9 @@
   <Toast message={toast.message} type={toast.type} duration={toast.duration} onClose={hideToast} />
 {/if}
 
-<Tips />
+<WelcomeModal show={showWelcomeModal} onclose={() => (showWelcomeModal = false)} />
+
+<Tips bind:isOpen={showTips} />
 
 <main class="flex flex-col items-center pt-16 bg-gray-50 min-h-screen">
   <!-- Modern Header -->
@@ -235,7 +329,7 @@
   >
     <!-- Left: File controls -->
     <div class="flex items-center gap-2">
-      <input type="file" name="pdf" id="pdf" accept="application/pdf" on:change={onUploadPDF} class="hidden" />
+      <input type="file" name="pdf" id="pdf" accept="application/pdf" onchange={onUploadPDF} class="hidden" />
       <label
         class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800
         text-white text-sm font-medium rounded-lg cursor-pointer transition-colors shadow-sm"
@@ -256,7 +350,7 @@
     <!-- Center: Tools (only when PDF loaded) -->
     {#if pages.length > 0}
       <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-        <input type="file" id="image" name="image" accept="image/*" class="hidden" on:change={onUploadImage} />
+        <input type="file" id="image" name="image" accept="image/*" class="hidden" onchange={onUploadImage} />
         <label
           class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
           cursor-pointer transition-all"
@@ -278,7 +372,7 @@
           class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
           cursor-pointer transition-all"
           title="Add Text"
-          on:click={onAddTextField}
+          onclick={onAddTextField}
           class:opacity-50={selectedPageIndex < 0}
           class:cursor-not-allowed={selectedPageIndex < 0}
         >
@@ -295,7 +389,7 @@
           class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
           cursor-pointer transition-all"
           title="Add Drawing"
-          on:click={onAddDrawing}
+          onclick={onAddDrawing}
           class:opacity-50={selectedPageIndex < 0}
           class:cursor-not-allowed={selectedPageIndex < 0}
         >
@@ -307,6 +401,35 @@
               d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
             />
           </svg>
+        </button>
+        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+        <button
+          class="flex items-center justify-center px-2 h-9 rounded-md transition-all gap-1
+          {editMode ? 'bg-amber-500 text-white hover:bg-amber-600' : 'hover:bg-white hover:shadow-sm text-gray-600'}"
+          title="Replace text (visual) - works best on simple PDFs (E)"
+          onclick={toggleEditMode}
+          disabled={textExtractionInProgress}
+        >
+          {#if textExtractionInProgress}
+            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          {:else}
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+          {/if}
+          <span class="hidden sm:inline text-xs font-medium">{editMode ? 'Exit' : 'Replace Text'}</span>
         </button>
       </div>
 
@@ -333,7 +456,7 @@
     <div class="flex items-center gap-2">
       {#if pages.length > 0}
         <button
-          on:click={savePDF}
+          onclick={savePDF}
           disabled={pages.length === 0 || saving || !pdfFile}
           class="relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
           transition-colors shadow-sm overflow-hidden
@@ -377,8 +500,8 @@
       style="height: 50%;"
     >
       <DrawingCanvas
-        on:finish={(e) => {
-          const { originWidth, originHeight, path } = e.detail;
+        onfinish={(detail) => {
+          const { originWidth, originHeight, path } = detail;
           let scale = 1;
           if (originWidth > 500) {
             scale = 500 / originWidth;
@@ -386,7 +509,7 @@
           addDrawing(originWidth, originHeight, path, scale);
           addingDrawing = false;
         }}
-        on:cancel={() => (addingDrawing = false)}
+        oncancel={() => (addingDrawing = false)}
       />
     </div>
   {/if}
@@ -414,9 +537,9 @@
           role="button"
           tabindex="0"
           aria-label="Select page {pIndex + 1}"
-          on:mousedown={() => selectPage(pIndex)}
-          on:touchstart={() => selectPage(pIndex)}
-          on:keydown={(e) => e.key === 'Enter' && selectPage(pIndex)}
+          onmousedown={() => selectPage(pIndex)}
+          ontouchstart={() => selectPage(pIndex)}
+          onkeydown={(e) => e.key === 'Enter' && selectPage(pIndex)}
         >
           <div
             class="relative bg-white rounded-lg transition-shadow"
@@ -425,51 +548,62 @@
             class:ring-2={pIndex === selectedPageIndex}
             class:ring-blue-500={pIndex === selectedPageIndex}
           >
-            <PDFPage on:measure={(e) => onMeasure(e.detail.scale, pIndex)} {page} />
+            <PDFPage onmeasure={(detail) => onMeasure(detail.scale, pIndex)} {page} />
             <div
               class="absolute top-0 left-0 transform origin-top-left"
               style="transform: scale({pagesScale[pIndex]}); touch-action: none;"
             >
-              {#each allObjects[pIndex] as object (object.id)}
-                {#if object.type === 'image'}
-                  <Image
-                    on:update={(e) => updateObject(object.id, e.detail)}
-                    on:delete={() => deleteObject(object.id)}
-                    file={object.file}
-                    payload={object.payload}
-                    x={object.x}
-                    y={object.y}
-                    width={object.width}
-                    height={object.height}
-                    pageScale={pagesScale[pIndex]}
-                  />
-                {:else if object.type === 'text'}
-                  <Text
-                    on:update={(e) => updateObject(object.id, e.detail)}
-                    on:delete={() => deleteObject(object.id)}
-                    on:selectFont={selectFontFamily}
-                    text={object.text}
-                    x={object.x}
-                    y={object.y}
-                    size={object.size}
-                    lineHeight={object.lineHeight}
-                    fontFamily={object.fontFamily}
-                    pageScale={pagesScale[pIndex]}
-                  />
-                {:else if object.type === 'drawing'}
-                  <Drawing
-                    on:update={(e) => updateObject(object.id, e.detail)}
-                    on:delete={() => deleteObject(object.id)}
-                    path={object.path}
-                    x={object.x}
-                    y={object.y}
-                    width={object.width}
-                    originWidth={object.originWidth}
-                    originHeight={object.originHeight}
-                    pageScale={pagesScale[pIndex]}
-                  />
-                {/if}
-              {/each}
+              {#if editMode && extractedTextByPage[pIndex]}
+                <!-- Replace text mode: show editable text layer -->
+                <EditableTextLayer
+                  textLines={extractedTextByPage[pIndex]}
+                  editedItems={editedTextByPage[pIndex]}
+                  showDebugOverlay={debugOverlay}
+                  ontextchange={(detail) => updateEditedText(pIndex, detail)}
+                />
+              {:else}
+                <!-- Normal mode: show annotations -->
+                {#each allObjects[pIndex] as object (object.id)}
+                  {#if object.type === 'image'}
+                    <Image
+                      onupdate={(detail) => updateObject(object.id, detail)}
+                      ondelete={() => deleteObject(object.id)}
+                      file={object.file}
+                      payload={object.payload}
+                      x={object.x}
+                      y={object.y}
+                      width={object.width}
+                      height={object.height}
+                      pageScale={pagesScale[pIndex]}
+                    />
+                  {:else if object.type === 'text'}
+                    <Text
+                      onupdate={(detail) => updateObject(object.id, detail)}
+                      ondelete={() => deleteObject(object.id)}
+                      onselectfont={selectFontFamily}
+                      text={object.text}
+                      x={object.x}
+                      y={object.y}
+                      size={object.size}
+                      lineHeight={object.lineHeight}
+                      fontFamily={object.fontFamily}
+                      pageScale={pagesScale[pIndex]}
+                    />
+                  {:else if object.type === 'drawing'}
+                    <Drawing
+                      onupdate={(detail) => updateObject(object.id, detail)}
+                      ondelete={() => deleteObject(object.id)}
+                      path={object.path}
+                      x={object.x}
+                      y={object.y}
+                      width={object.width}
+                      originWidth={object.originWidth}
+                      originHeight={object.originHeight}
+                      pageScale={pagesScale[pIndex]}
+                    />
+                  {/if}
+                {/each}
+              {/if}
             </div>
           </div>
           <span class="mt-2 text-xs text-gray-400">Page {pIndex + 1}</span>
@@ -481,8 +615,8 @@
       <DropZone
         {recentFiles}
         {loading}
-        on:upload={onUploadPDF}
-        on:recent={() => showToast('Recent file feature coming soon', 'info')}
+        onupload={onUploadPDF}
+        onrecent={() => showToast('Recent file feature coming soon', 'info')}
       />
     </div>
   {/if}

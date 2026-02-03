@@ -2,12 +2,9 @@
   import { fly } from 'svelte/transition';
   import { onMount } from 'svelte';
 
-  export let message = '';
-  export let type = 'success'; // success | error | info
-  export let duration = 3000;
-  export let onClose = () => {};
+  let { message = '', type = 'success', duration = 3000, onClose = () => {} } = $props();
 
-  let visible = true;
+  let visible = $state(true);
 
   onMount(() => {
     if (duration > 0) {
@@ -60,7 +57,7 @@
     </span>
     <span class="font-medium mr-2">{message}</span>
     <button
-      on:click={handleClose}
+      onclick={handleClose}
       class="ml-2 opacity-60 hover:opacity-100 transition-opacity"
       aria-label="Close notification"
     >

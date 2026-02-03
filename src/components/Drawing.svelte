@@ -1,25 +1,18 @@
 <svelte:options immutable={true} />
 
 <script>
-  import { onMount, createEventDispatcher } from 'svelte';
+  import { onMount } from 'svelte';
   import { pannable } from '@src/utils/pannable.js';
   import DeleteIcon from '@src/assets/icons/DeleteIcon.svelte';
-  export let originWidth;
-  export let originHeight;
-  export let width;
-  export let x;
-  export let y;
-  export let pageScale = 1;
-  export let path;
-  const dispatch = createEventDispatcher();
-  let startX;
-  let startY;
-  let svg;
-  let operation = '';
-  let dx = 0;
-  let dy = 0;
-  let dw = 0;
-  let direction = '';
+  let { originWidth, originHeight, width, x, y, pageScale = 1, path, onupdate, ondelete } = $props();
+  let startX = $state();
+  let startY = $state();
+  let svg = $state();
+  let operation = $state('');
+  let dx = $state(0);
+  let dy = $state(0);
+  let dw = $state(0);
+  let direction = $state('');
   const ratio = originWidth / originHeight;
   async function render() {
     svg.setAttribute('viewBox', `0 0 ${originWidth} ${originHeight}`);
@@ -48,14 +41,14 @@
 
   function handlePanEnd(_event) {
     if (operation === 'move') {
-      dispatch('update', {
+      onupdate?.({
         x: x + dx,
         y: y + dy,
       });
       dx = 0;
       dy = 0;
     } else if (operation === 'scale') {
-      dispatch('update', {
+      onupdate?.({
         x: x + dx,
         y: y + dy,
         width: width + dw,
@@ -77,8 +70,8 @@
     operation = 'scale';
     direction = event.detail.target.dataset.direction;
   }
-  function onDelete() {
-    dispatch('delete');
+  function handleDelete() {
+    ondelete?.();
   }
   onMount(render);
 </script>
@@ -89,10 +82,7 @@
   translate({x + dx}px, {y + dy}px);"
 >
   <div
-    use:pannable
-    on:panstart={handlePanStart}
-    on:panmove={handlePanMove}
-    on:panend={handlePanEnd}
+    use:pannable={{ onpanstart: handlePanStart, onpanmove: handlePanMove, onpanend: handlePanEnd }}
     class="absolute w-full h-full cursor-grab border border-gray-400
     border-dashed"
     class:cursor-grabbing={operation === 'move'}
@@ -110,9 +100,9 @@
     />
   </div>
   <div
-    on:click={onDelete}
-    class="absolute left-0 top-0 right-0 w-12 h-12 m-auto rounded-full bg-white
-    cursor-pointer transform -translate-y-1/2 md:scale-25"
+    onclick={handleDelete}
+    class="absolute left-0 top-0 right-0 w-16 h-16 m-auto rounded-full bg-white
+    cursor-pointer transform -translate-y-1/2 md:scale-30"
   >
     <DeleteIcon class="w-full h-full text-red-500" />
   </div>

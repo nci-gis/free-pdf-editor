@@ -1,21 +1,24 @@
 <script>
-  import { onMount, onDestroy, createEventDispatcher } from 'svelte';
-  export let page;
-  const dispatch = createEventDispatcher();
+  import { onMount, onDestroy } from 'svelte';
+  let { page, onmeasure } = $props();
   let canvas;
-  let width;
-  let height;
+  let width = $state(0);
+  let height = $state(0);
   function measure() {
-    dispatch('measure', {
-      scale: canvas.clientWidth / width,
-    });
+    if (width > 0) {
+      onmeasure?.({
+        scale: canvas.clientWidth / width,
+      });
+    }
   }
   async function render() {
     const _page = await page;
-    const context = canvas.getContext('2d');
     const viewport = _page.getViewport({ scale: 1, rotation: 0 });
     width = viewport.width;
     height = viewport.height;
+    // Wait for Svelte to update the canvas dimensions
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const context = canvas.getContext('2d');
     await _page.render({
       canvasContext: context,
       viewport,
@@ -30,5 +33,5 @@
 </script>
 
 <div>
-  <canvas bind:this={canvas} class="max-w-full" style="width: {width}px;" {width} {height} />
+  <canvas bind:this={canvas} class="max-w-full" style={width > 0 ? `width: ${width}px;` : ''} {width} {height}></canvas>
 </div>
