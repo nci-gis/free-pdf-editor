@@ -1,0 +1,147 @@
+<script>
+  import { createEventDispatcher } from "svelte";
+  import { fade, scale } from "svelte/transition";
+
+  export let recentFiles = [];
+  export let loading = false;
+
+  const dispatch = createEventDispatcher();
+  let isDragOver = false;
+  let dragCounter = 0;
+
+  function handleDragEnter(e) {
+    e.preventDefault();
+    dragCounter++;
+    isDragOver = true;
+  }
+
+  function handleDragLeave(e) {
+    e.preventDefault();
+    dragCounter--;
+    if (dragCounter === 0) {
+      isDragOver = false;
+    }
+  }
+
+  function handleDragOver(e) {
+    e.preventDefault();
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    isDragOver = false;
+    dragCounter = 0;
+    const files = e.dataTransfer?.files;
+    if (files?.length > 0) {
+      dispatch("upload", { files });
+    }
+  }
+
+  function handleFileSelect(e) {
+    const files = e.target.files;
+    if (files?.length > 0) {
+      dispatch("upload", { files });
+    }
+    e.target.value = null;
+  }
+
+  function handleRecentClick(file) {
+    dispatch("recent", { file });
+  }
+
+  function formatDate(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+</script>
+
+<div
+  class="w-full max-w-2xl mx-auto flex flex-col items-center"
+  role="region"
+  aria-label="PDF upload area"
+  on:dragenter={handleDragEnter}
+  on:dragleave={handleDragLeave}
+  on:dragover={handleDragOver}
+  on:drop={handleDrop}
+>
+  <div
+    class="w-full p-12 border-2 border-dashed rounded-xl transition-all duration-300 flex flex-col items-center justify-center gap-4
+    {isDragOver ? 'border-blue-500 bg-blue-50 scale-102' : 'border-gray-300 bg-white hover:border-gray-400'}"
+    class:animate-pulse={isDragOver}
+  >
+    {#if loading}
+      <div class="flex flex-col items-center gap-4" transition:fade>
+        <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        <p class="text-gray-600 font-medium">Loading PDF...</p>
+      </div>
+    {:else}
+      <div class="text-gray-400" transition:scale>
+        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+        </svg>
+      </div>
+
+      <div class="text-center">
+        <p class="text-xl font-semibold text-gray-700">
+          {isDragOver ? "Drop your PDF here" : "Drag & drop your PDF"}
+        </p>
+        <p class="text-gray-500 mt-1">or</p>
+      </div>
+
+      <label class="cursor-pointer">
+        <input
+          type="file"
+          accept="application/pdf"
+          class="hidden"
+          on:change={handleFileSelect}
+        />
+        <span class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium rounded-lg transition-colors shadow-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+          Browse files
+        </span>
+      </label>
+    {/if}
+  </div>
+
+  {#if recentFiles.length > 0 && !loading}
+    <div class="w-full mt-8" transition:fade>
+      <h3 class="text-sm font-medium text-gray-500 mb-3 flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        Recent Files
+      </h3>
+      <div class="space-y-2">
+        {#each recentFiles as file}
+          <button
+            class="w-full flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors text-left group"
+            on:click={() => handleRecentClick(file)}
+          >
+            <div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
+              </svg>
+            </div>
+            <div class="flex-grow min-w-0">
+              <p class="font-medium text-gray-800 truncate group-hover:text-blue-600 transition-colors">
+                {file.name}
+              </p>
+              <p class="text-sm text-gray-500">{formatDate(file.lastOpened)}</p>
+            </div>
+            <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
+</div>
