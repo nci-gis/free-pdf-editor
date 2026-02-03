@@ -1,33 +1,28 @@
 <script>
-  import { onMount } from "svelte";
-  import { fly } from "svelte/transition";
-  import Tailwind from "./components/Tailwind.svelte";
-  import PDFPage from "./components/PDFPage.svelte";
-  import Image from "./components/Image.svelte";
-  import Text from "./components/Text.svelte";
-  import Drawing from "./components/Drawing.svelte";
-  import DrawingCanvas from "./components/DrawingCanvas.svelte";
-  import DropZone from "./components/DropZone.svelte";
-  import Toast from "./components/Toast.svelte";
-  import prepareAssets, { fetchFont } from "./utils/prepareAssets.js";
-  import {
-    readAsArrayBuffer,
-    readAsImage,
-    readAsPDF,
-    readAsDataURL
-  } from "./utils/asyncReader.js";
-  import { ggID } from "./utils/helper.js";
-  import { save } from "./utils/PDF.js";
-  import { getRecentFiles, addRecentFile } from "./utils/recentFiles.js";
+  import { onMount } from 'svelte';
+  import { fly } from 'svelte/transition';
+  import Tailwind from './components/Tailwind.svelte';
+  import PDFPage from './components/PDFPage.svelte';
+  import Image from './components/Image.svelte';
+  import Text from './components/Text.svelte';
+  import Drawing from './components/Drawing.svelte';
+  import DrawingCanvas from './components/DrawingCanvas.svelte';
+  import DropZone from './components/DropZone.svelte';
+  import Toast from './components/Toast.svelte';
+  import Tips from './components/Tips.svelte';
+  import prepareAssets, { fetchFont } from './utils/prepareAssets.js';
+  import { readAsImage, readAsPDF, readAsDataURL } from './utils/asyncReader.js';
+  import { ggID } from './utils/helper.js';
+  import { save } from './utils/PDF.js';
+  import { getRecentFiles, addRecentFile } from './utils/recentFiles.js';
 
   const genID = ggID();
   let pdfFile;
-  let pdfName = "";
+  let pdfName = '';
   let pages = [];
   let pagesScale = [];
   let allObjects = [];
-  let currentFont = "Times-Roman";
-  let focusId = null;
+  let currentFont = 'Times-Roman';
   let selectedPageIndex = -1;
   let saving = false;
   let saveProgress = 0;
@@ -41,7 +36,7 @@
     prepareAssets();
   });
 
-  function showToast(message, type = "success", duration = 3000) {
+  function showToast(message, type = 'success', duration = 3000) {
     toast = { message, type, duration };
   }
 
@@ -50,7 +45,7 @@
   }
 
   function handleKeydown(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
       savePDF();
     }
@@ -59,8 +54,8 @@
   async function onUploadPDF(e) {
     const files = e.target?.files || e.detail?.files || (e.dataTransfer && e.dataTransfer.files);
     const file = files?.[0];
-    if (!file || file.type !== "application/pdf") {
-      if (file) showToast("Please select a valid PDF file", "error");
+    if (!file || file.type !== 'application/pdf') {
+      if (file) showToast('Please select a valid PDF file', 'error');
       return;
     }
     selectedPageIndex = -1;
@@ -69,10 +64,10 @@
       await addPDF(file);
       selectedPageIndex = 0;
       recentFiles = addRecentFile(file.name, file.size);
-      showToast(`Opened ${file.name}`, "success", 2000);
+      showToast(`Opened ${file.name}`, 'success', 2000);
     } catch (e) {
       console.log(e);
-      showToast("Failed to open PDF file", "error");
+      showToast('Failed to open PDF file', 'error');
     } finally {
       loading = false;
     }
@@ -90,7 +85,7 @@
       allObjects = pages.map(() => []);
       pagesScale = Array(numPages).fill(1);
     } catch (e) {
-      console.log("Failed to add pdf.");
+      console.log('Failed to add pdf.');
       throw e;
     }
   }
@@ -111,20 +106,18 @@
       const { width, height } = img;
       const object = {
         id,
-        type: "image",
+        type: 'image',
         width,
         height,
         x: 0,
         y: 0,
         payload: img,
-        file
+        file,
       };
-      allObjects = allObjects.map((objects, pIndex) =>
-        pIndex === selectedPageIndex ? [...objects, object] : objects
-      );
+      allObjects = allObjects.map((objects, pIndex) => (pIndex === selectedPageIndex ? [...objects, object] : objects));
     } catch (e) {
       console.log(`Fail to add image.`, e);
-      showToast("Failed to add image", "error");
+      showToast('Failed to add image', 'error');
     }
   }
 
@@ -134,23 +127,21 @@
     }
   }
 
-  function addTextField(text = "New Text Field") {
+  function addTextField(text = 'New Text Field') {
     const id = genID();
     fetchFont(currentFont);
     const object = {
       id,
       text,
-      type: "text",
+      type: 'text',
       size: 16,
       width: 0,
       lineHeight: 1.4,
       fontFamily: currentFont,
       x: 0,
-      y: 0
+      y: 0,
     };
-    allObjects = allObjects.map((objects, pIndex) =>
-      pIndex === selectedPageIndex ? [...objects, object] : objects
-    );
+    allObjects = allObjects.map((objects, pIndex) => (pIndex === selectedPageIndex ? [...objects, object] : objects));
   }
 
   function onAddDrawing() {
@@ -164,17 +155,15 @@
     const object = {
       id,
       path,
-      type: "drawing",
+      type: 'drawing',
       x: 0,
       y: 0,
       originWidth,
       originHeight,
       width: originWidth * scale,
-      scale
+      scale,
     };
-    allObjects = allObjects.map((objects, pIndex) =>
-      pIndex === selectedPageIndex ? [...objects, object] : objects
-    );
+    allObjects = allObjects.map((objects, pIndex) => (pIndex === selectedPageIndex ? [...objects, object] : objects));
   }
 
   function selectFontFamily(event) {
@@ -190,18 +179,14 @@
   function updateObject(objectId, payload) {
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex == selectedPageIndex
-        ? objects.map(object =>
-            object.id === objectId ? { ...object, ...payload } : object
-          )
+        ? objects.map((object) => (object.id === objectId ? { ...object, ...payload } : object))
         : objects
     );
   }
 
   function deleteObject(objectId) {
     allObjects = allObjects.map((objects, pIndex) =>
-      pIndex == selectedPageIndex
-        ? objects.filter(object => object.id !== objectId)
-        : objects
+      pIndex == selectedPageIndex ? objects.filter((object) => object.id !== objectId) : objects
     );
   }
 
@@ -217,10 +202,10 @@
       await save(pdfFile, allObjects, pdfName, (progress) => {
         saveProgress = progress;
       });
-      showToast("PDF saved successfully!", "success");
+      showToast('PDF saved successfully!', 'success');
     } catch (e) {
       console.log(e);
-      showToast("Failed to save PDF", "error");
+      showToast('Failed to save PDF', 'error');
     } finally {
       saving = false;
       saveProgress = 0;
@@ -232,37 +217,37 @@
   on:dragenter|preventDefault
   on:dragover|preventDefault
   on:drop|preventDefault={onUploadPDF}
-  on:keydown={handleKeydown} />
+  on:keydown={handleKeydown}
+/>
 <Tailwind />
 
 {#if toast}
-  <Toast
-    message={toast.message}
-    type={toast.type}
-    duration={toast.duration}
-    onClose={hideToast} />
+  <Toast message={toast.message} type={toast.type} duration={toast.duration} onClose={hideToast} />
 {/if}
+
+<Tips />
 
 <main class="flex flex-col items-center pt-16 bg-gray-50 min-h-screen">
   <!-- Modern Header -->
   <header
     class="fixed z-10 top-0 left-0 right-0 h-14 flex items-center justify-between
-    px-4 bg-white border-b border-gray-200 shadow-sm">
+    px-4 bg-white border-b border-gray-200 shadow-sm"
+  >
     <!-- Left: File controls -->
     <div class="flex items-center gap-2">
-      <input
-        type="file"
-        name="pdf"
-        id="pdf"
-        accept="application/pdf"
-        on:change={onUploadPDF}
-        class="hidden" />
+      <input type="file" name="pdf" id="pdf" accept="application/pdf" on:change={onUploadPDF} class="hidden" />
       <label
         class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800
         text-white text-sm font-medium rounded-lg cursor-pointer transition-colors shadow-sm"
-        for="pdf">
+        for="pdf"
+      >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+          />
         </svg>
         <span class="hidden sm:inline">Open PDF</span>
       </label>
@@ -271,22 +256,22 @@
     <!-- Center: Tools (only when PDF loaded) -->
     {#if pages.length > 0}
       <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-        <input
-          type="file"
-          id="image"
-          name="image"
-          accept="image/*"
-          class="hidden"
-          on:change={onUploadImage} />
+        <input type="file" id="image" name="image" accept="image/*" class="hidden" on:change={onUploadImage} />
         <label
           class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
           cursor-pointer transition-all"
           for="image"
           title="Add Image"
           class:opacity-50={selectedPageIndex < 0}
-          class:cursor-not-allowed={selectedPageIndex < 0}>
+          class:cursor-not-allowed={selectedPageIndex < 0}
+        >
           <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+            />
           </svg>
         </label>
         <button
@@ -295,9 +280,15 @@
           title="Add Text"
           on:click={onAddTextField}
           class:opacity-50={selectedPageIndex < 0}
-          class:cursor-not-allowed={selectedPageIndex < 0}>
+          class:cursor-not-allowed={selectedPageIndex < 0}
+        >
           <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
           </svg>
         </button>
         <button
@@ -306,9 +297,15 @@
           title="Add Drawing"
           on:click={onAddDrawing}
           class:opacity-50={selectedPageIndex < 0}
-          class:cursor-not-allowed={selectedPageIndex < 0}>
+          class:cursor-not-allowed={selectedPageIndex < 0}
+        >
           <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+            />
           </svg>
         </button>
       </div>
@@ -316,13 +313,19 @@
       <!-- Filename input -->
       <div class="hidden md:flex items-center gap-2 flex-1 max-w-xs mx-4">
         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+          />
         </svg>
         <input
           placeholder="filename.pdf"
           type="text"
           class="flex-grow bg-transparent text-sm text-gray-700 focus:outline-none"
-          bind:value={pdfName} />
+          bind:value={pdfName}
+        />
       </div>
     {/if}
 
@@ -335,21 +338,29 @@
           class="relative inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
           transition-colors shadow-sm overflow-hidden
           {saving ? 'bg-blue-600 text-white' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white'}
-          disabled:opacity-50 disabled:cursor-not-allowed">
+          disabled:opacity-50 disabled:cursor-not-allowed"
+        >
           {#if saving}
-            <div
-              class="absolute inset-0 bg-blue-500 transition-all"
-              style="width: {saveProgress}%"></div>
+            <div class="absolute inset-0 bg-blue-500 transition-all" style="width: {saveProgress}%"></div>
             <span class="relative flex items-center gap-2">
               <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               {saveProgress}%
             </span>
           {:else}
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"
+              />
             </svg>
             <span class="hidden sm:inline">Save</span>
           {/if}
@@ -363,9 +374,10 @@
     <div
       transition:fly={{ y: -200, duration: 500 }}
       class="fixed z-20 top-14 left-0 right-0 border-b border-gray-200 bg-white shadow-lg"
-      style="height: 50%;">
+      style="height: 50%;"
+    >
       <DrawingCanvas
-        on:finish={e => {
+        on:finish={(e) => {
           const { originWidth, originHeight, path } = e.detail;
           let scale = 1;
           if (originWidth > 500) {
@@ -374,7 +386,8 @@
           addDrawing(originWidth, originHeight, path, scale);
           addingDrawing = false;
         }}
-        on:cancel={() => (addingDrawing = false)} />
+        on:cancel={() => (addingDrawing = false)}
+      />
     </div>
   {/if}
 
@@ -383,13 +396,14 @@
     <div class="flex md:hidden justify-center px-5 py-3 w-full bg-white border-b border-gray-100">
       <div class="flex items-center gap-2 w-full max-w-md">
         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+          />
         </svg>
-        <input
-          placeholder="filename.pdf"
-          type="text"
-          class="flex-grow bg-transparent text-sm"
-          bind:value={pdfName} />
+        <input placeholder="filename.pdf" type="text" class="flex-grow bg-transparent text-sm" bind:value={pdfName} />
       </div>
     </div>
 
@@ -402,23 +416,24 @@
           aria-label="Select page {pIndex + 1}"
           on:mousedown={() => selectPage(pIndex)}
           on:touchstart={() => selectPage(pIndex)}
-          on:keydown={e => e.key === 'Enter' && selectPage(pIndex)}>
+          on:keydown={(e) => e.key === 'Enter' && selectPage(pIndex)}
+        >
           <div
             class="relative bg-white rounded-lg transition-shadow"
             class:shadow-lg={pIndex !== selectedPageIndex}
             class:shadow-xl={pIndex === selectedPageIndex}
             class:ring-2={pIndex === selectedPageIndex}
-            class:ring-blue-500={pIndex === selectedPageIndex}>
-            <PDFPage
-              on:measure={e => onMeasure(e.detail.scale, pIndex)}
-              {page} />
+            class:ring-blue-500={pIndex === selectedPageIndex}
+          >
+            <PDFPage on:measure={(e) => onMeasure(e.detail.scale, pIndex)} {page} />
             <div
               class="absolute top-0 left-0 transform origin-top-left"
-              style="transform: scale({pagesScale[pIndex]}); touch-action: none;">
+              style="transform: scale({pagesScale[pIndex]}); touch-action: none;"
+            >
               {#each allObjects[pIndex] as object (object.id)}
                 {#if object.type === 'image'}
                   <Image
-                    on:update={e => updateObject(object.id, e.detail)}
+                    on:update={(e) => updateObject(object.id, e.detail)}
                     on:delete={() => deleteObject(object.id)}
                     file={object.file}
                     payload={object.payload}
@@ -426,10 +441,11 @@
                     y={object.y}
                     width={object.width}
                     height={object.height}
-                    pageScale={pagesScale[pIndex]} />
+                    pageScale={pagesScale[pIndex]}
+                  />
                 {:else if object.type === 'text'}
                   <Text
-                    on:update={e => updateObject(object.id, e.detail)}
+                    on:update={(e) => updateObject(object.id, e.detail)}
                     on:delete={() => deleteObject(object.id)}
                     on:selectFont={selectFontFamily}
                     text={object.text}
@@ -438,10 +454,11 @@
                     size={object.size}
                     lineHeight={object.lineHeight}
                     fontFamily={object.fontFamily}
-                    pageScale={pagesScale[pIndex]} />
+                    pageScale={pagesScale[pIndex]}
+                  />
                 {:else if object.type === 'drawing'}
                   <Drawing
-                    on:update={e => updateObject(object.id, e.detail)}
+                    on:update={(e) => updateObject(object.id, e.detail)}
                     on:delete={() => deleteObject(object.id)}
                     path={object.path}
                     x={object.x}
@@ -449,7 +466,8 @@
                     width={object.width}
                     originWidth={object.originWidth}
                     originHeight={object.originHeight}
-                    pageScale={pagesScale[pIndex]} />
+                    pageScale={pagesScale[pIndex]}
+                  />
                 {/if}
               {/each}
             </div>
@@ -464,7 +482,8 @@
         {recentFiles}
         {loading}
         on:upload={onUploadPDF}
-        on:recent={e => showToast("Recent file feature coming soon", "info")} />
+        on:recent={() => showToast('Recent file feature coming soon', 'info')}
+      />
     </div>
   {/if}
 </main>

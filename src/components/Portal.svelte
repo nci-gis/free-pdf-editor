@@ -1,8 +1,8 @@
 <script>
-  import { onMount } from "svelte";
-  
+  import { onMount } from 'svelte';
+
   let portal;
-  
+
   onMount(() => {
     if (portal) {
       document.body.appendChild(portal);

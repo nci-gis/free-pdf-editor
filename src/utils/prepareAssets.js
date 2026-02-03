@@ -38,7 +38,7 @@ export function prepareAsset({ name, src }) {
     };
     script.onerror = () => {
       reject(`The script ${name} didn't load correctly.`);
-      alert(`Some scripts did not load correctly. Please reload and try again.`)
+      alert(`Some scripts did not load correctly. Please reload and try again.`);
     };
     document.body.appendChild(script);
   });

@@ -62,7 +62,7 @@ export async function save(pdfFile, objects, name, onProgress = () => {}) {
             height,
             font: font.buffer || fontFamily, // built-in font family
             dy: font.correction(size, lineHeight),
-          }),
+          })
         );
         return () =>
           page.drawPage(textPage, {
@@ -73,20 +73,9 @@ export async function save(pdfFile, objects, name, onProgress = () => {}) {
           });
       } else if (object.type === 'drawing') {
         let { x, y, path, scale } = object;
-        const {
-          pushGraphicsState,
-          setLineCap,
-          popGraphicsState,
-          setLineJoin,
-          LineCapStyle,
-          LineJoinStyle,
-        } = PDFLib;
+        const { pushGraphicsState, setLineCap, popGraphicsState, setLineJoin, LineCapStyle, LineJoinStyle } = PDFLib;
         return () => {
-          page.pushOperators(
-            pushGraphicsState(),
-            setLineCap(LineCapStyle.Round),
-            setLineJoin(LineJoinStyle.Round),
-          );
+          page.pushOperators(pushGraphicsState(), setLineCap(LineCapStyle.Round), setLineJoin(LineJoinStyle.Round));
           page.drawSvgPath(path, {
             borderWidth: 5,
             scale,

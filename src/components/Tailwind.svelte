@@ -1,7 +1,9 @@
 <style global>
-  /* purgecss start ignore */
-  @tailwind base;
-  @tailwind components;
-  /* purgecss end ignore */
-  @tailwind utilities;
+  @import 'tailwindcss';
+
+  /* Custom theme extensions */
+  @theme {
+    /* Add custom scale value not in default Tailwind */
+    --scale-102: 1.02;
+  }
 </style>
