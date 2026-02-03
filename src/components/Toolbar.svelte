@@ -1,5 +1,5 @@
 <script>
-  import Portal from "./Portal.svelte";
+  import Portal from './Portal.svelte';
 </script>
 
 <Portal>

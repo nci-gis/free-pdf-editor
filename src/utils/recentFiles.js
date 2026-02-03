@@ -18,13 +18,13 @@ export function addRecentFile(name, size = 0) {
     const files = getRecentFiles();
 
     // Remove existing entry with same name
-    const filtered = files.filter(f => f.name !== name);
+    const filtered = files.filter((f) => f.name !== name);
 
     // Add new entry at the beginning
     const newFile = {
       name,
       size,
-      lastOpened: Date.now()
+      lastOpened: Date.now(),
     };
 
     const updated = [newFile, ...filtered].slice(0, MAX_RECENT);
@@ -40,7 +40,7 @@ export function addRecentFile(name, size = 0) {
 export function removeRecentFile(name) {
   try {
     const files = getRecentFiles();
-    const filtered = files.filter(f => f.name !== name);
+    const filtered = files.filter((f) => f.name !== name);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
     return filtered;
   } catch (e) {

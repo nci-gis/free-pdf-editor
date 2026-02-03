@@ -1,22 +1,10 @@
 const autoprefixer = require('autoprefixer');
-const purgecss = require('@fullhuman/postcss-purgecss').default;
 
-const production = !process.env.ROLLUP_WATCH;
-
+// Tailwind v4 handles purging automatically via its built-in engine
+// No need for separate purgecss plugin
 module.exports = {
   plugins: [
-    require('tailwindcss'),
+    require('@tailwindcss/postcss'),
     autoprefixer,
-    ...(production ? [purgecss({
-      content: ['./src/**/*.svelte'],
-      safelist: {
-        standard: [/svelte-/],
-      },
-      defaultExtractor: (content) => {
-        const standard = content.match(/[\w-/:]+/g) || [];
-        const svelteClass = content.match(/(?<=class:)[\w-/:]+/g) || [];
-        return standard.concat(svelteClass);
-      },
-    })] : []),
   ],
 };
