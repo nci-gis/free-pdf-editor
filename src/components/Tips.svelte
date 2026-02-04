@@ -261,6 +261,7 @@
     style="{popupStyle} width: 320px; max-height: calc(100vh - 8rem);"
   >
     <!-- Header (Draggable) -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
       onmousedown={handlePopupDragStart}
       ontouchstart={handlePopupDragStart}

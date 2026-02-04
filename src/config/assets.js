@@ -11,6 +11,16 @@ export const ASSET_PATHS = {
   },
   fonts: {
     chinese: `${BASE_PATH}/assets/fonts/CK.ttf`,
+    arial: `${BASE_PATH}/assets/fonts/ARIAL.TTF`,
+    // Sans-serif
+    roboto: `${BASE_PATH}/assets/fonts/Roboto-Regular.ttf`,
+    openSans: `${BASE_PATH}/assets/fonts/OpenSans-Regular.ttf`,
+    lato: `${BASE_PATH}/assets/fonts/Lato-Regular.ttf`,
+    // Serif
+    merriweather: `${BASE_PATH}/assets/fonts/Merriweather-Regular.ttf`,
+    // Monospace
+    robotoMono: `${BASE_PATH}/assets/fonts/RobotoMono-Regular.ttf`,
+    sourceCodePro: `${BASE_PATH}/assets/fonts/SourceCodePro-Regular.ttf`,
   },
 };
 
