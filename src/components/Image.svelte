@@ -4,7 +4,7 @@
   import { onMount } from 'svelte';
   import { pannable } from '@src/utils/pannable.js';
   import DeleteIcon from '@src/assets/icons/DeleteIcon.svelte';
-  let { payload, file, width, height, x, y, pageScale = 1, onupdate, ondelete } = $props();
+  let { id, payload, file, width, height, x, y, pageScale = 1, isSelected = false, onupdate, ondelete, onselect } = $props();
   let startX = $state();
   let startY = $state();
   let canvas = $state();
@@ -137,6 +137,8 @@
   function handlePanStart(event) {
     startX = event.detail.x;
     startY = event.detail.y;
+    // Select this component when starting to interact
+    onselect?.({ id });
     if (event.detail.target === event.currentTarget) {
       return (operation = 'move');
     }
@@ -145,6 +147,10 @@
   }
   function handleDelete() {
     ondelete?.();
+  }
+  function handleSelect(e) {
+    e.stopPropagation();
+    onselect?.({ id });
   }
   onMount(render);
   onMount(() => {
@@ -170,8 +176,12 @@
   });
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events, element_invalid_self_closing_tag -->
 <div
+  onclick={handleSelect}
   class="absolute left-0 top-0 select-none"
+  class:ring-2={isSelected}
+  class:ring-blue-500={isSelected}
   style="width: {width + dw}px; height: {height + dh}px; transform: translate({x + dx}px,
   {y + dy}px);"
 >
@@ -209,7 +219,7 @@
   <div
     onclick={handleDelete}
     class="absolute left-0 top-0 right-0 w-12 h-12 m-auto rounded-full bg-white
-    cursor-pointer transform -translate-y-1/2 md:scale-25"
+    cursor-pointer transform -translate-y-1/2 md:scale-30"
   >
     <DeleteIcon class="w-full h-full text-red-500" />
   </div>

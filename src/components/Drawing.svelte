@@ -4,7 +4,7 @@
   import { onMount } from 'svelte';
   import { pannable } from '@src/utils/pannable.js';
   import DeleteIcon from '@src/assets/icons/DeleteIcon.svelte';
-  let { originWidth, originHeight, width, x, y, pageScale = 1, path, onupdate, ondelete } = $props();
+  let { id, originWidth, originHeight, width, x, y, pageScale = 1, path, isSelected = false, onupdate, ondelete, onselect } = $props();
   let startX = $state();
   let startY = $state();
   let svg = $state();
@@ -64,6 +64,8 @@
   function handlePanStart(event) {
     startX = event.detail.x;
     startY = event.detail.y;
+    // Select this component when starting to interact
+    onselect?.({ id });
     if (event.detail.target === event.currentTarget) {
       return (operation = 'move');
     }
@@ -73,11 +75,19 @@
   function handleDelete() {
     ondelete?.();
   }
+  function handleSelect(e) {
+    e.stopPropagation();
+    onselect?.({ id });
+  }
   onMount(render);
 </script>
 
+<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events, element_invalid_self_closing_tag -->
 <div
+  onclick={handleSelect}
   class="absolute left-0 top-0 select-none"
+  class:ring-2={isSelected}
+  class:ring-blue-500={isSelected}
   style="width: {width + dw}px; height: {(width + dw) / ratio}px; transform:
   translate({x + dx}px, {y + dy}px);"
 >

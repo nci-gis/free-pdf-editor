@@ -10,6 +10,7 @@
   import DropZone from './components/DropZone.svelte';
   import Toast from './components/Toast.svelte';
   import Tips from './components/Tips.svelte';
+  import Sidebar from './components/Sidebar.svelte';
   import prepareAssets, { fetchFont } from './utils/prepareAssets.js';
   import { readAsImage, readAsPDF, readAsDataURL } from './utils/asyncReader.js';
   import { ggID } from './utils/helper.js';
@@ -40,6 +41,16 @@
   let debugOverlay = $state(false); // Show detected text blocks overlay
   let showWelcomeModal = $state(false); // Welcome popup for replace text mode
   let showTips = $state(false); // Tips popup
+
+  // Sidebar selection state
+  let selectedObjectId = $state(null);
+
+  // Derived: get selected object
+  let selectedObject = $derived.by(() => {
+    // selectedObjectId can legitimately be 0 (first generated id), so test for null/undefined instead of falsy.
+    if (selectedPageIndex < 0 || selectedObjectId == null) return null;
+    return allObjects[selectedPageIndex]?.find((obj) => obj.id === selectedObjectId) || null;
+  });
 
   onMount(() => {
     recentFiles = getRecentFiles();
@@ -201,6 +212,7 @@
         payload: img,
         file,
       };
+      selectedObjectId = id; // Set before adding to ensure isSelected is true on mount
       allObjects = allObjects.map((objects, pIndex) => (pIndex === selectedPageIndex ? [...objects, object] : objects));
     } catch (e) {
       console.log(`Fail to add image.`, e);
@@ -228,6 +240,7 @@
       x: 0,
       y: 0,
     };
+    selectedObjectId = id; // Set before adding to ensure isSelected is true on mount
     allObjects = allObjects.map((objects, pIndex) => (pIndex === selectedPageIndex ? [...objects, object] : objects));
   }
 
@@ -250,6 +263,7 @@
       width: originWidth * scale,
       scale,
     };
+    selectedObjectId = id; // Set before adding to ensure isSelected is true on mount
     allObjects = allObjects.map((objects, pIndex) => (pIndex === selectedPageIndex ? [...objects, object] : objects));
   }
 
@@ -275,6 +289,18 @@
     allObjects = allObjects.map((objects, pIndex) =>
       pIndex == selectedPageIndex ? objects.filter((object) => object.id !== objectId) : objects
     );
+    // Clear selection if deleted object was selected
+    if (selectedObjectId === objectId) {
+      selectedObjectId = null;
+    }
+  }
+
+  function selectObject(detail) {
+    selectedObjectId = detail.id;
+  }
+
+  function deselectAll() {
+    selectedObjectId = null;
   }
 
   function onMeasure(scale, i) {
@@ -321,7 +347,7 @@
 
 <Tips bind:isOpen={showTips} />
 
-<main class="flex flex-col items-center pt-16 bg-gray-50 min-h-screen">
+<main class="flex h-screen pt-14 bg-gray-50">
   <!-- Modern Header -->
   <header
     class="fixed z-10 top-0 left-0 right-0 h-14 flex items-center justify-between
@@ -514,110 +540,136 @@
     </div>
   {/if}
 
-  {#if pages.length}
-    <!-- Mobile filename input -->
-    <div class="flex md:hidden justify-center px-5 py-3 w-full bg-white border-b border-gray-100">
-      <div class="flex items-center gap-2 w-full max-w-md">
-        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-          />
-        </svg>
-        <input placeholder="filename.pdf" type="text" class="flex-grow bg-transparent text-sm" bind:value={pdfName} />
-      </div>
-    </div>
-
-    <div class="w-full py-4">
-      {#each pages as page, pIndex (page)}
-        <div
-          class="px-4 py-3 w-full flex flex-col items-center"
-          role="button"
-          tabindex="0"
-          aria-label="Select page {pIndex + 1}"
-          onmousedown={() => selectPage(pIndex)}
-          ontouchstart={() => selectPage(pIndex)}
-          onkeydown={(e) => e.key === 'Enter' && selectPage(pIndex)}
-        >
-          <div
-            class="relative bg-white rounded-lg transition-shadow"
-            class:shadow-lg={pIndex !== selectedPageIndex}
-            class:shadow-xl={pIndex === selectedPageIndex}
-            class:ring-2={pIndex === selectedPageIndex}
-            class:ring-blue-500={pIndex === selectedPageIndex}
-          >
-            <PDFPage onmeasure={(detail) => onMeasure(detail.scale, pIndex)} {page} />
-            <div
-              class="absolute top-0 left-0 transform origin-top-left"
-              style="transform: scale({pagesScale[pIndex]}); touch-action: none;"
-            >
-              {#if editMode && extractedTextByPage[pIndex]}
-                <!-- Replace text mode: show editable text layer -->
-                <EditableTextLayer
-                  textLines={extractedTextByPage[pIndex]}
-                  editedItems={editedTextByPage[pIndex]}
-                  showDebugOverlay={debugOverlay}
-                  ontextchange={(detail) => updateEditedText(pIndex, detail)}
-                />
-              {:else}
-                <!-- Normal mode: show annotations -->
-                {#each allObjects[pIndex] as object (object.id)}
-                  {#if object.type === 'image'}
-                    <Image
-                      onupdate={(detail) => updateObject(object.id, detail)}
-                      ondelete={() => deleteObject(object.id)}
-                      file={object.file}
-                      payload={object.payload}
-                      x={object.x}
-                      y={object.y}
-                      width={object.width}
-                      height={object.height}
-                      pageScale={pagesScale[pIndex]}
-                    />
-                  {:else if object.type === 'text'}
-                    <Text
-                      onupdate={(detail) => updateObject(object.id, detail)}
-                      ondelete={() => deleteObject(object.id)}
-                      onselectfont={selectFontFamily}
-                      text={object.text}
-                      x={object.x}
-                      y={object.y}
-                      size={object.size}
-                      lineHeight={object.lineHeight}
-                      fontFamily={object.fontFamily}
-                      pageScale={pagesScale[pIndex]}
-                    />
-                  {:else if object.type === 'drawing'}
-                    <Drawing
-                      onupdate={(detail) => updateObject(object.id, detail)}
-                      ondelete={() => deleteObject(object.id)}
-                      path={object.path}
-                      x={object.x}
-                      y={object.y}
-                      width={object.width}
-                      originWidth={object.originWidth}
-                      originHeight={object.originHeight}
-                      pageScale={pagesScale[pIndex]}
-                    />
-                  {/if}
-                {/each}
-              {/if}
-            </div>
-          </div>
-          <span class="mt-2 text-xs text-gray-400">Page {pIndex + 1}</span>
+  <!-- Main Content Area -->
+  <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->
+  <div class="flex-1 overflow-auto flex flex-col items-center" onclick={deselectAll}>
+    {#if pages.length}
+      <!-- Mobile filename input -->
+      <div class="flex md:hidden justify-center px-5 py-3 w-full bg-white border-b border-gray-100">
+        <div class="flex items-center gap-2 w-full max-w-md">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+            />
+          </svg>
+          <input placeholder="filename.pdf" type="text" class="flex-grow bg-transparent text-sm" bind:value={pdfName} />
         </div>
-      {/each}
-    </div>
-  {:else}
-    <div class="w-full flex-grow flex justify-center items-center p-8">
-      <DropZone
-        {recentFiles}
-        {loading}
-        onupload={onUploadPDF}
-        onrecent={() => showToast('Recent file feature coming soon', 'info')}
-      />
-    </div>
+      </div>
+
+      <div class="w-full py-4">
+        {#each pages as page, pIndex (page)}
+          <div
+            class="px-4 py-3 w-full flex flex-col items-center"
+            role="button"
+            tabindex="0"
+            aria-label="Select page {pIndex + 1}"
+            onmousedown={() => selectPage(pIndex)}
+            ontouchstart={() => selectPage(pIndex)}
+            onkeydown={(e) => e.key === 'Enter' && selectPage(pIndex)}
+          >
+            <div
+              class="relative bg-white rounded-lg transition-shadow"
+              class:shadow-lg={pIndex !== selectedPageIndex}
+              class:shadow-xl={pIndex === selectedPageIndex}
+              class:ring-2={pIndex === selectedPageIndex}
+              class:ring-blue-500={pIndex === selectedPageIndex}
+            >
+              <PDFPage onmeasure={(detail) => onMeasure(detail.scale, pIndex)} {page} />
+              <div
+                class="absolute top-0 left-0 transform origin-top-left"
+                style="transform: scale({pagesScale[pIndex]}); touch-action: none;"
+              >
+                {#if editMode && extractedTextByPage[pIndex]}
+                  <!-- Replace text mode: show editable text layer -->
+                  <EditableTextLayer
+                    textLines={extractedTextByPage[pIndex]}
+                    editedItems={editedTextByPage[pIndex]}
+                    showDebugOverlay={debugOverlay}
+                    ontextchange={(detail) => updateEditedText(pIndex, detail)}
+                  />
+                {:else}
+                  <!-- Normal mode: show annotations -->
+                  {#each allObjects[pIndex] as object (object.id)}
+                    {#if object.type === 'image'}
+                      <Image
+                        id={object.id}
+                        onupdate={(detail) => updateObject(object.id, detail)}
+                        ondelete={() => deleteObject(object.id)}
+                        onselect={selectObject}
+                        isSelected={selectedObjectId === object.id}
+                        file={object.file}
+                        payload={object.payload}
+                        x={object.x}
+                        y={object.y}
+                        width={object.width}
+                        height={object.height}
+                        pageScale={pagesScale[pIndex]}
+                      />
+                    {:else if object.type === 'text'}
+                      <Text
+                        id={object.id}
+                        onupdate={(detail) => updateObject(object.id, detail)}
+                        ondelete={() => deleteObject(object.id)}
+                        onselect={selectObject}
+                        isSelected={selectedObjectId === object.id}
+                        text={object.text}
+                        x={object.x}
+                        y={object.y}
+                        size={object.size}
+                        lineHeight={object.lineHeight}
+                        fontFamily={object.fontFamily}
+                        pageScale={pagesScale[pIndex]}
+                      />
+                    {:else if object.type === 'drawing'}
+                      <Drawing
+                        id={object.id}
+                        onupdate={(detail) => updateObject(object.id, detail)}
+                        ondelete={() => deleteObject(object.id)}
+                        onselect={selectObject}
+                        isSelected={selectedObjectId === object.id}
+                        path={object.path}
+                        x={object.x}
+                        y={object.y}
+                        width={object.width}
+                        originWidth={object.originWidth}
+                        originHeight={object.originHeight}
+                        pageScale={pagesScale[pIndex]}
+                      />
+                    {/if}
+                  {/each}
+                {/if}
+              </div>
+            </div>
+            <span class="mt-2 text-xs text-gray-400">Page {pIndex + 1}</span>
+          </div>
+        {/each}
+      </div>
+    {:else}
+      <div class="w-full flex-grow flex justify-center items-center p-8">
+        <DropZone
+          {recentFiles}
+          {loading}
+          onupload={onUploadPDF}
+          onrecent={() => showToast('Recent file feature coming soon', 'info')}
+        />
+      </div>
+    {/if}
+  </div>
+
+  <!-- Right Sidebar -->
+  {#if pages.length > 0}
+    <Sidebar
+      {selectedObject}
+      {editMode}
+      {currentFont}
+      {textExtractionInProgress}
+      onupdateobject={updateObject}
+      ondeleteobject={deleteObject}
+      onselectfont={selectFontFamily}
+      ontoggleeditmode={toggleEditMode}
+    />
   {/if}
 </main>
