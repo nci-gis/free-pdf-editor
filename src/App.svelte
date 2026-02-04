@@ -6,6 +6,7 @@
   import Drawing from './components/Drawing.svelte';
   import DrawingCanvas from './components/DrawingCanvas.svelte';
   import DropZone from './components/DropZone.svelte';
+  import FirstLaunchModal from './components/FirstLaunchModal.svelte';
   import Image from './components/Image.svelte';
   import PDFPage from './components/PDFPage.svelte';
   import Sidebar from './components/Sidebar.svelte';
@@ -13,7 +14,7 @@
   import Text from './components/Text.svelte';
   import Tips from './components/Tips.svelte';
   import Toast from './components/Toast.svelte';
-  import { EditableTextLayer, extractTextFromPage, groupTextIntoLines, WelcomeModal } from './libs/textReplace';
+  import { EditableTextLayer, extractTextFromPage, groupTextIntoLines, NoticeModal } from './libs/textReplace';
   import { readAsDataURL, readAsImage, readAsPDF } from './utils/asyncReader.js';
   import { ggID } from './utils/helper.js';
   import { save } from './utils/PDF.js';
@@ -43,7 +44,8 @@
   let editedTextByPage = $state([]);
   let textExtractionInProgress = $state(false);
   let debugOverlay = $state(false); // Show detected text blocks overlay
-  let showWelcomeModal = $state(false); // Welcome popup for replace text mode
+  let showNoticeModal = $state(false); // Notice popup for replace text mode
+  let showFirstLaunchModal = $state(true); // First launch welcome modal
   let showTips = $state(false); // Tips popup
 
   // Sidebar selection state
@@ -121,7 +123,7 @@
       extractedTextByPage = extracted;
       editedTextByPage = pages.map(() => new Map());
       editMode = true;
-      showWelcomeModal = true; // Show welcome popup (will auto-close if already seen)
+      showNoticeModal = true; // Show notice popup (will auto-close if already seen)
     } catch (e) {
       console.error('Failed to extract text:', e);
       showToast('Failed to extract text from PDF', 'error');
@@ -372,7 +374,9 @@
   <Toast message={toast.message} type={toast.type} duration={toast.duration} onClose={hideToast} />
 {/if}
 
-<WelcomeModal show={showWelcomeModal} onclose={() => (showWelcomeModal = false)} />
+<FirstLaunchModal bind:show={showFirstLaunchModal} />
+
+<NoticeModal show={showNoticeModal} onclose={() => (showNoticeModal = false)} />
 
 <Tips bind:isOpen={showTips} />
 

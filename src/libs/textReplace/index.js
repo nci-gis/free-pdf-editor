@@ -13,4 +13,4 @@ export { extractTextFromPage, groupTextIntoLines, mapToAvailableFont } from './t
 // Svelte components
 export { default as EditableTextBlock } from './EditableTextBlock.svelte';
 export { default as EditableTextLayer } from './EditableTextLayer.svelte';
-export { default as WelcomeModal } from './WelcomeModal.svelte';
+export { default as NoticeModal } from './NoticeModal.svelte';
