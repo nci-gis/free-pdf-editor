@@ -66,7 +66,7 @@
     startY = event.detail.y;
     // Select this component when starting to interact
     onselect?.({ id });
-    if (event.detail.target === event.currentTarget) {
+    if (event.detail.target === event.detail.currentTarget) {
       return (operation = 'move');
     }
     operation = 'scale';

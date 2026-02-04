@@ -111,7 +111,6 @@
   }
   function render() {
     editable.innerHTML = text;
-    editable.focus();
   }
   function extractLines() {
     const nodes = editable.childNodes;
@@ -135,8 +134,16 @@
 <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events, element_invalid_self_closing_tag -->
 <div
   onclick={handleSelect}
-  use:tapout
-  ontapout={onBlur}
+  use:tapout={{ ontapout: () => {
+    // Reset any in-progress operations when clicking outside
+    if (operation === 'edit') {
+      onBlur();
+    } else {
+      operation = '';
+      dx = 0;
+      dy = 0;
+    }
+  } }}
   class="absolute left-0 top-0 select-none"
   class:ring-2={isSelected}
   class:ring-blue-500={isSelected}
@@ -144,7 +151,7 @@
 >
   <div
     use:pannable={{ onpanstart: handlePanStart, onpanmove: handlePanMove, onpanend: handlePanEnd }}
-    class="absolute w-full h-full cursor-grab border border-dotted"
+    class="absolute w-full h-full cursor-grab border border-dotted z-10"
     class:border-blue-500={isSelected}
     class:border-gray-500={!isSelected}
     class:cursor-grab={!operation}
