@@ -103,7 +103,7 @@
   }
 
   async function handleClearCache() {
-    if (!confirm('This will clear all custom fonts, recent files, and settings. Continue?')) {
+    if (!confirm('This will clear all custom fonts, recent files, settings, and reset welcome messages. Continue?')) {
       return;
     }
 
@@ -121,6 +121,10 @@
 
       // Clear sidebar state
       localStorage.removeItem(STORAGE_KEY);
+
+      // Clear modal flags (welcome/notice modals)
+      localStorage.removeItem('app_welcomeSeen');
+      localStorage.removeItem('textReplace_noticeSeen');
 
       // Update font list
       updateFontList();
