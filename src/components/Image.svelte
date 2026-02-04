@@ -139,7 +139,7 @@
     startY = event.detail.y;
     // Select this component when starting to interact
     onselect?.({ id });
-    if (event.detail.target === event.currentTarget) {
+    if (event.detail.target === event.detail.currentTarget) {
       return (operation = 'move');
     }
     operation = 'scale';
@@ -219,7 +219,7 @@
   <div
     onclick={handleDelete}
     class="absolute left-0 top-0 right-0 w-12 h-12 m-auto rounded-full bg-white
-    cursor-pointer transform -translate-y-1/2 md:scale-30"
+    cursor-pointer transform -translate-y-1/2 md:scale-40"
   >
     <DeleteIcon class="w-full h-full text-red-500" />
   </div>

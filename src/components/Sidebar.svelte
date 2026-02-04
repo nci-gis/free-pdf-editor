@@ -4,7 +4,9 @@
   import ImageProperties from './sidebar/ImageProperties.svelte';
   import DrawingProperties from './sidebar/DrawingProperties.svelte';
   import { Fonts, addCustomFont } from '@src/utils/prepareAssets.js';
-  import { loadAllCustomFonts, importFontFile, deleteCustomFont, getCustomFonts } from '@src/utils/customFonts.js';
+  import { loadAllCustomFonts, importFontFile, clearAllCustomFonts } from '@src/utils/customFonts.js';
+  import { clearRecentFiles } from '@src/utils/recentFiles.js';
+  import { removeCustomFont } from '@src/utils/prepareAssets.js';
 
   let {
     selectedObject = null,
@@ -24,6 +26,7 @@
   let customFontNames = $state([]);
   let fontInputRef = $state();
   let importing = $state(false);
+  let clearing = $state(false);
 
   onMount(async () => {
     // Load collapsed state from localStorage
@@ -89,6 +92,39 @@
       importing = false;
       // Reset input
       e.target.value = '';
+    }
+  }
+
+  async function handleClearCache() {
+    if (!confirm('This will clear all custom fonts, recent files, and settings. Continue?')) {
+      return;
+    }
+
+    clearing = true;
+    try {
+      // Clear custom fonts from IndexedDB
+      await clearAllCustomFonts();
+      // Remove custom fonts from memory
+      for (const name of customFontNames) {
+        removeCustomFont(name);
+      }
+
+      // Clear recent files
+      clearRecentFiles();
+
+      // Clear sidebar state
+      localStorage.removeItem(STORAGE_KEY);
+
+      // Update font list
+      updateFontList();
+
+      // Reset to default font
+      onselectfont?.({ name: 'Times-Roman' });
+    } catch (error) {
+      console.error('Failed to clear cache:', error);
+      alert(`Failed to clear cache: ${error.message}`);
+    } finally {
+      clearing = false;
     }
   }
 </script>
@@ -239,6 +275,37 @@
               {/if}
             </button>
             <p class="text-xs text-gray-400">Edit existing text in the PDF (press E)</p>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="border-t border-gray-200"></div>
+
+        <!-- System Section -->
+        <div class="space-y-4">
+          <div class="text-xs font-medium text-gray-500 uppercase tracking-wide">System</div>
+
+          <!-- Clear Cache -->
+          <div class="space-y-1">
+            <button
+              onclick={handleClearCache}
+              disabled={clearing}
+              class="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-md transition-colors disabled:opacity-50"
+            >
+              {#if clearing}
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Clearing...
+              {:else}
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Clear All Cache
+              {/if}
+            </button>
+            <p class="text-xs text-gray-400">Remove custom fonts, recent files, and settings</p>
           </div>
         </div>
       </div>

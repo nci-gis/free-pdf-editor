@@ -11,8 +11,9 @@ export function pannable(node, params = {}) {
     x = event.clientX;
     y = event.clientY;
     const target = event.target;
+    const currentTarget = event.currentTarget;
 
-    callbacks.onpanstart?.({ detail: { x, y, target } });
+    callbacks.onpanstart?.({ detail: { x, y, target, currentTarget } });
 
     window.addEventListener('mousemove', handleMousemove);
     window.addEventListener('mouseup', handleMouseup);
@@ -42,8 +43,9 @@ export function pannable(node, params = {}) {
     x = touch.clientX;
     y = touch.clientY;
     const target = touch.target;
+    const currentTarget = event.currentTarget;
 
-    callbacks.onpanstart?.({ detail: { x, y, target } });
+    callbacks.onpanstart?.({ detail: { x, y, target, currentTarget } });
 
     window.addEventListener('touchmove', handleTouchmove, { passive: false });
     window.addEventListener('touchend', handleTouchend);

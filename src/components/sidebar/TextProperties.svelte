@@ -9,6 +9,8 @@
   let size = $state(object?.size ?? 16);
   let lineHeight = $state(object?.lineHeight ?? 1.4);
   let fontFamily = $state(object?.fontFamily ?? 'Times-Roman');
+  let x = $state(Math.round(object?.x ?? 0));
+  let y = $state(Math.round(object?.y ?? 0));
 
   // Sync state when object changes
   $effect(() => {
@@ -16,6 +18,8 @@
       size = object.size ?? 16;
       lineHeight = object.lineHeight ?? 1.4;
       fontFamily = object.fontFamily ?? 'Times-Roman';
+      x = Math.round(object.x ?? 0);
+      y = Math.round(object.y ?? 0);
     }
   });
 
@@ -30,6 +34,10 @@
   function handleFontChange() {
     onselectfont?.({ name: fontFamily });
     onupdate?.({ fontFamily });
+  }
+
+  function handlePositionChange() {
+    onupdate?.({ x, y });
   }
 
   function handleDelete() {
@@ -92,6 +100,41 @@
       onchange={handleLineHeightChange}
       class="w-full h-8 px-2 text-sm text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
     />
+  </div>
+
+  <!-- Position -->
+  <div class="space-y-2">
+    <span class="text-sm text-gray-600">Position</span>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="space-y-1">
+        <label class="text-xs text-gray-400" for="text-x-input">X</label>
+        <div class="flex items-center gap-1">
+          <input
+            id="text-x-input"
+            type="number"
+            step="1"
+            bind:value={x}
+            onchange={handlePositionChange}
+            class="w-full h-8 px-2 text-sm text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span class="text-xs text-gray-400">px</span>
+        </div>
+      </div>
+      <div class="space-y-1">
+        <label class="text-xs text-gray-400" for="text-y-input">Y</label>
+        <div class="flex items-center gap-1">
+          <input
+            id="text-y-input"
+            type="number"
+            step="1"
+            bind:value={y}
+            onchange={handlePositionChange}
+            class="w-full h-8 px-2 text-sm text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span class="text-xs text-gray-400">px</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Delete Button -->

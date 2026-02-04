@@ -87,6 +87,21 @@ export async function deleteCustomFont(name) {
 }
 
 /**
+ * Clear all custom fonts from IndexedDB
+ */
+export async function clearAllCustomFonts() {
+  const database = await openDB();
+  return new Promise((resolve, reject) => {
+    const transaction = database.transaction([STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(STORE_NAME);
+    const request = store.clear();
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
  * Register a font with the browser's FontFace API
  * @param {string} name - Font family name
  * @param {ArrayBuffer} buffer - Font file data
