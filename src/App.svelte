@@ -19,7 +19,15 @@
   import { ggID } from './utils/helper.js';
   import { save } from './utils/PDF.js';
   import prepareAssets, { fetchFont } from './utils/prepareAssets.js';
-  import { addRecentFile, getRecentFiles } from './utils/recentFiles.js';
+  import {
+  getFileFromHandle,
+  getFileHandle,
+  getLastDirectory,
+  removeFileHandle,
+  storeFileHandle,
+  storeLastDirectory,
+} from './utils/fileHandleStorage.js';
+import { addRecentFile, clearRecentFiles, getRecentFiles, removeRecentFile } from './utils/recentFiles.js';
 
   const genID = ggID();
   let pdfFile = $state();
@@ -177,6 +185,7 @@
     // Handle both DOM events (from <input>) and callback prop detail (from DropZone)
     const files = eventOrDetail.target?.files || eventOrDetail.files;
     const file = files?.[0];
+    const fileHandle = eventOrDetail.fileHandle; // FileSystemFileHandle from drop or picker
     if (!file || file.type !== 'application/pdf') {
       if (file) showToast('Please select a valid PDF file', 'error');
       return;
@@ -187,6 +196,10 @@
       await addPDF(file);
       selectedPageIndex = 0;
       recentFiles = addRecentFile(file.name, file.size);
+      // Store file handle for recent files feature
+      if (fileHandle) {
+        await storeFileHandle(file.name, fileHandle);
+      }
       showToast(`Opened ${file.name}`, 'success', 2000);
     } catch (e) {
       console.log(e);
@@ -194,6 +207,97 @@
     } finally {
       loading = false;
     }
+  }
+
+  async function openFilePicker() {
+    if (window.showOpenFilePicker) {
+      try {
+        // Get last directory to start from
+        const lastDir = await getLastDirectory();
+        const options = {
+          types: [
+            {
+              description: 'PDF files',
+              accept: { 'application/pdf': ['.pdf'] },
+            },
+          ],
+          multiple: false,
+        };
+        if (lastDir) {
+          options.startIn = lastDir;
+        }
+
+        const [fileHandle] = await window.showOpenFilePicker(options);
+        const file = await fileHandle.getFile();
+
+        // Store the directory for next time
+        try {
+          const dirHandle = await fileHandle.getParent?.();
+          if (dirHandle) {
+            await storeLastDirectory(dirHandle);
+          }
+        } catch {
+          // getParent may not be supported in all browsers
+        }
+
+        await onUploadPDF({ files: [file], fileHandle });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.warn('File picker error:', err);
+        }
+      }
+    }
+  }
+
+  async function onOpenRecentFile(detail) {
+    const { file: recentFile } = detail;
+    loading = true;
+    try {
+      const handle = await getFileHandle(recentFile.name);
+      if (!handle) {
+        showToast(`File "${recentFile.name}" is no longer available`, 'error');
+        recentFiles = removeRecentFile(recentFile.name);
+        await removeFileHandle(recentFile.name);
+        return;
+      }
+
+      const file = await getFileFromHandle(handle);
+      if (!file) {
+        showToast(`Cannot access "${recentFile.name}". Permission denied or file moved.`, 'error');
+        recentFiles = removeRecentFile(recentFile.name);
+        await removeFileHandle(recentFile.name);
+        return;
+      }
+
+      selectedPageIndex = -1;
+      await addPDF(file);
+      selectedPageIndex = 0;
+      recentFiles = addRecentFile(file.name, file.size);
+      showToast(`Opened ${file.name}`, 'success', 2000);
+    } catch (e) {
+      console.log(e);
+      showToast(`Failed to open "${recentFile.name}"`, 'error');
+      recentFiles = removeRecentFile(recentFile.name);
+      await removeFileHandle(recentFile.name);
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function onRemoveRecentFile(detail) {
+    const { file: recentFile } = detail;
+    recentFiles = removeRecentFile(recentFile.name);
+    await removeFileHandle(recentFile.name);
+    showToast(`Removed "${recentFile.name}" from recent files`, 'info', 2000);
+  }
+
+  async function onClearAllRecentFiles() {
+    // Remove all file handles from IndexedDB
+    for (const file of recentFiles) {
+      await removeFileHandle(file.name);
+    }
+    recentFiles = clearRecentFiles();
+    showToast('Cleared all recent files', 'info', 2000);
   }
 
   async function addPDF(file) {
@@ -362,9 +466,35 @@
 <svelte:window
   ondragenter={(e) => e.preventDefault()}
   ondragover={(e) => e.preventDefault()}
-  ondrop={(e) => {
+  ondrop={async (e) => {
     e.preventDefault();
-    onUploadPDF(e);
+    const items = e.dataTransfer?.items;
+    if (items?.length > 0) {
+      const item = items[0];
+      if (item.kind === 'file') {
+        let fileHandle = null;
+        if (item.getAsFileSystemHandle) {
+          try {
+            fileHandle = await item.getAsFileSystemHandle();
+            // Store the directory for next time
+            try {
+              const dirHandle = await fileHandle.getParent?.();
+              if (dirHandle) {
+                await storeLastDirectory(dirHandle);
+              }
+            } catch {
+              // getParent may not be supported
+            }
+          } catch (err) {
+            console.warn('Could not get file handle:', err);
+          }
+        }
+        const file = item.getAsFile();
+        if (file) {
+          onUploadPDF({ files: [file], fileHandle });
+        }
+      }
+    }
   }}
   onkeydown={handleKeydown}
 />
@@ -388,11 +518,10 @@
   >
     <!-- Left: File controls -->
     <div class="flex items-center gap-2">
-      <input type="file" name="pdf" id="pdf" accept="application/pdf" onchange={onUploadPDF} class="hidden" />
-      <label
+      <button
         class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800
         text-white text-sm font-medium rounded-lg cursor-pointer transition-colors shadow-sm"
-        for="pdf"
+        onclick={openFilePicker}
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -403,7 +532,7 @@
           />
         </svg>
         <span class="hidden sm:inline">Open PDF</span>
-      </label>
+      </button>
     </div>
 
     <!-- Center: Tools (only when PDF loaded) -->
@@ -695,7 +824,9 @@
           {recentFiles}
           {loading}
           onupload={onUploadPDF}
-          onrecent={() => showToast('Recent file feature coming soon', 'info')}
+          onrecent={onOpenRecentFile}
+          onremoverecent={onRemoveRecentFile}
+          onclearall={onClearAllRecentFiles}
         />
       </div>
     {/if}
