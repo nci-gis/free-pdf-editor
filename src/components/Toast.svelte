@@ -1,6 +1,6 @@
 <script>
-  import { fly } from 'svelte/transition';
   import { onMount } from 'svelte';
+  import { fly } from 'svelte/transition';
 
   let { message = '', type = 'success', duration = 3000, onClose = () => {} } = $props();
 

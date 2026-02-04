@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
 
 export default [
   js.configs.recommended,
@@ -9,6 +10,9 @@ export default [
   prettier,
   ...svelte.configs['flat/prettier'],
   {
+    plugins: {
+      'simple-import-sort': simpleImportSort,
+    },
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -18,6 +22,9 @@ export default [
     rules: {
       // Allow unused vars with underscore prefix (e.g., _event)
       'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      // Sort imports automatically
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
     },
   },
   {

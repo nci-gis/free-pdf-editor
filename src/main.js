@@ -1,4 +1,5 @@
 import { mount } from 'svelte';
+
 import App from './App.svelte';
 import { getAsset } from './utils/prepareAssets.js';
 

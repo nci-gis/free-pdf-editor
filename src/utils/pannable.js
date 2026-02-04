@@ -1,11 +1,26 @@
 /**
  * Svelte action for pan/drag functionality.
- * Usage: use:pannable={{ onpanstart, onpanmove, onpanend }}
+ * Usage: use:pannable={{ onpanstart, onpanmove, onpanend, cursor, cursorActive }}
+ *
+ * Cursor options:
+ * - cursor: default cursor (default: 'pointer')
+ * - cursorActive: cursor during dragging (default: 'move')
+ *
+ * For drawing, use: cursor: 'crosshair', cursorActive: 'crosshair'
  */
 export function pannable(node, params = {}) {
   let x;
   let y;
   let callbacks = params;
+  let originalCursor = '';
+  let isPanning = false;
+
+  // Get cursor options with defaults
+  const getCursor = () => callbacks.cursor || 'pointer';
+  const getCursorActive = () => callbacks.cursorActive || 'move';
+
+  // Set default cursor
+  node.style.cursor = getCursor();
 
   function handleMousedown(event) {
     x = event.clientX;
@@ -13,7 +28,14 @@ export function pannable(node, params = {}) {
     const target = event.target;
     const currentTarget = event.currentTarget;
 
-    callbacks.onpanstart?.({ detail: { x, y, target, currentTarget } });
+    // Allow onpanstart to return false to cancel the pan operation
+    const result = callbacks.onpanstart?.({ detail: { x, y, target, currentTarget } });
+    if (result === false) return;
+
+    // Set active cursor during dragging
+    isPanning = true;
+    originalCursor = node.style.cursor;
+    node.style.cursor = getCursorActive();
 
     window.addEventListener('mousemove', handleMousemove);
     window.addEventListener('mouseup', handleMouseup);
@@ -32,6 +54,10 @@ export function pannable(node, params = {}) {
     x = event.clientX;
     y = event.clientY;
 
+    // Restore cursor to default
+    isPanning = false;
+    node.style.cursor = originalCursor || getCursor();
+
     callbacks.onpanend?.({ detail: { x, y } });
     window.removeEventListener('mousemove', handleMousemove);
     window.removeEventListener('mouseup', handleMouseup);
@@ -45,7 +71,9 @@ export function pannable(node, params = {}) {
     const target = touch.target;
     const currentTarget = event.currentTarget;
 
-    callbacks.onpanstart?.({ detail: { x, y, target, currentTarget } });
+    // Allow onpanstart to return false to cancel the pan operation
+    const result = callbacks.onpanstart?.({ detail: { x, y, target, currentTarget } });
+    if (result === false) return;
 
     window.addEventListener('touchmove', handleTouchmove, { passive: false });
     window.addEventListener('touchend', handleTouchend);
@@ -79,6 +107,10 @@ export function pannable(node, params = {}) {
   return {
     update(newParams) {
       callbacks = newParams;
+      // Update cursor if changed, but not while actively panning
+      if (!isPanning) {
+        node.style.cursor = getCursor();
+      }
     },
     destroy() {
       node.removeEventListener('mousedown', handleMousedown);

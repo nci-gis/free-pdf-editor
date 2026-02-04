@@ -1,22 +1,24 @@
 <script>
   import { onMount } from 'svelte';
-  import { fly } from 'svelte/transition';
-  import Tailwind from './components/Tailwind.svelte';
-  import PDFPage from './components/PDFPage.svelte';
-  import Image from './components/Image.svelte';
-  import Text from './components/Text.svelte';
+  import { cubicInOut } from 'svelte/easing';
+  import { fly, slide } from 'svelte/transition';
+
   import Drawing from './components/Drawing.svelte';
   import DrawingCanvas from './components/DrawingCanvas.svelte';
   import DropZone from './components/DropZone.svelte';
-  import Toast from './components/Toast.svelte';
-  import Tips from './components/Tips.svelte';
+  import Image from './components/Image.svelte';
+  import PDFPage from './components/PDFPage.svelte';
   import Sidebar from './components/Sidebar.svelte';
-  import prepareAssets, { fetchFont } from './utils/prepareAssets.js';
-  import { readAsImage, readAsPDF, readAsDataURL } from './utils/asyncReader.js';
+  import Tailwind from './components/Tailwind.svelte';
+  import Text from './components/Text.svelte';
+  import Tips from './components/Tips.svelte';
+  import Toast from './components/Toast.svelte';
+  import { EditableTextLayer, extractTextFromPage, groupTextIntoLines, WelcomeModal } from './libs/textReplace';
+  import { readAsDataURL, readAsImage, readAsPDF } from './utils/asyncReader.js';
   import { ggID } from './utils/helper.js';
   import { save } from './utils/PDF.js';
-  import { getRecentFiles, addRecentFile } from './utils/recentFiles.js';
-  import { EditableTextLayer, WelcomeModal, extractTextFromPage, groupTextIntoLines } from './libs/textReplace';
+  import prepareAssets, { fetchFont } from './utils/prepareAssets.js';
+  import { addRecentFile, getRecentFiles } from './utils/recentFiles.js';
 
   const genID = ggID();
   let pdfFile = $state();
@@ -32,6 +34,8 @@
   let loading = $state(false);
   let recentFiles = $state([]);
   let toast = $state(null);
+  let selectedTextBlock = $state(null); // Replace-text mode selection
+  let editableLayers = $state([]); // refs to per-page EditableTextLayer
 
   // Replace text mode state
   let editMode = $state(false);
@@ -129,6 +133,7 @@
   function exitEditMode() {
     editMode = false;
     debugOverlay = false;
+    selectedTextBlock = null;
     // Keep editedTextByPage for saving
     const editCount = editedTextByPage.reduce((sum, map) => sum + map.size, 0);
     if (editCount > 0) {
@@ -142,6 +147,28 @@
     const { id, ...editData } = detail;
     editedTextByPage[pageIndex].set(id, editData);
     editedTextByPage = [...editedTextByPage]; // Trigger reactivity
+  }
+
+  function handleReplaceBlockSelect(pageIndex, detail) {
+    if (detail === null) {
+      selectedTextBlock = null;
+      return;
+    }
+    selectedTextBlock = { pageIndex, ...detail };
+  }
+
+  function updateSelectedTextBlockFont(payload) {
+    if (!selectedTextBlock) return;
+    const layer = editableLayers[selectedTextBlock.pageIndex];
+    layer?.applyFontAndSizeToBlock(selectedTextBlock.id, payload);
+    selectedTextBlock = { ...selectedTextBlock, ...payload };
+  }
+
+  function updateSelectedTextBlockDimensions(payload) {
+    if (!selectedTextBlock) return;
+    const layer = editableLayers[selectedTextBlock.pageIndex];
+    layer?.applyDimensionsToBlock(selectedTextBlock.id, payload);
+    selectedTextBlock = { ...selectedTextBlock, ...payload };
   }
 
   async function onUploadPDF(eventOrDetail) {
@@ -182,6 +209,7 @@
       editMode = false;
       extractedTextByPage = [];
       editedTextByPage = [];
+      selectedTextBlock = null;
     } catch (e) {
       console.log('Failed to add pdf.');
       throw e;
@@ -275,6 +303,7 @@
 
   function selectPage(index) {
     selectedPageIndex = index;
+    selectedTextBlock = null;
   }
 
   function updateObject(objectId, payload) {
@@ -376,59 +405,65 @@
     <!-- Center: Tools (only when PDF loaded) -->
     {#if pages.length > 0}
       <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-        <input type="file" id="image" name="image" accept="image/*" class="hidden" onchange={onUploadImage} />
-        <label
-          class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
-          cursor-pointer transition-all"
-          for="image"
-          title="Add Image"
-          class:opacity-50={selectedPageIndex < 0}
-          class:cursor-not-allowed={selectedPageIndex < 0}
-        >
-          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-            />
-          </svg>
-        </label>
-        <button
-          class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
-          cursor-pointer transition-all"
-          title="Add Text"
-          onclick={onAddTextField}
-          class:opacity-50={selectedPageIndex < 0}
-          class:cursor-not-allowed={selectedPageIndex < 0}
-        >
-          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-            />
-          </svg>
-        </button>
-        <button
-          class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
-          cursor-pointer transition-all"
-          title="Add Drawing"
-          onclick={onAddDrawing}
-          class:opacity-50={selectedPageIndex < 0}
-          class:cursor-not-allowed={selectedPageIndex < 0}
-        >
-          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-            />
-          </svg>
-        </button>
-        <div class="w-px h-6 bg-gray-300 mx-1"></div>
+        <!-- Annotation tools (hidden in edit mode) -->
+        {#if !editMode}
+          <div class="flex items-center gap-1" transition:slide={{ duration: 250, axis: 'x', easing: cubicInOut }}>
+            <input type="file" id="image" name="image" accept="image/*" class="hidden" onchange={onUploadImage} />
+            <label
+              class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
+              cursor-pointer transition-all"
+              for="image"
+              title="Add Image"
+              class:opacity-50={selectedPageIndex < 0}
+              class:cursor-not-allowed={selectedPageIndex < 0}
+            >
+              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+            </label>
+            <button
+              class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
+              cursor-pointer transition-all"
+              title="Add Text"
+              onclick={onAddTextField}
+              class:opacity-50={selectedPageIndex < 0}
+              class:cursor-not-allowed={selectedPageIndex < 0}
+            >
+              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </button>
+            <button
+              class="flex items-center justify-center w-9 h-9 rounded-md hover:bg-white hover:shadow-sm
+              cursor-pointer transition-all"
+              title="Add Drawing"
+              onclick={onAddDrawing}
+              class:opacity-50={selectedPageIndex < 0}
+              class:cursor-not-allowed={selectedPageIndex < 0}
+            >
+              <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+            </button>
+            <div class="w-px h-6 bg-gray-300 mx-1"></div>
+          </div>
+        {/if}
+        <!-- Replace Text button (always visible) -->
         <button
           class="flex items-center justify-center px-2 h-9 rounded-md transition-all gap-1
           {editMode ? 'bg-amber-500 text-white hover:bg-amber-600' : 'hover:bg-white hover:shadow-sm text-gray-600'}"
@@ -585,10 +620,13 @@
                 {#if editMode && extractedTextByPage[pIndex]}
                   <!-- Replace text mode: show editable text layer -->
                   <EditableTextLayer
+                    bind:this={editableLayers[pIndex]}
                     textLines={extractedTextByPage[pIndex]}
                     editedItems={editedTextByPage[pIndex]}
                     showDebugOverlay={debugOverlay}
+                    pageScale={pagesScale[pIndex]}
                     ontextchange={(detail) => updateEditedText(pIndex, detail)}
+                    onblockselect={(detail) => handleReplaceBlockSelect(pIndex, detail)}
                   />
                 {:else}
                   <!-- Normal mode: show annotations -->
@@ -663,13 +701,24 @@
   {#if pages.length > 0}
     <Sidebar
       {selectedObject}
+      {selectedTextBlock}
       {editMode}
       {currentFont}
       {textExtractionInProgress}
+      {debugOverlay}
+      editStats={{
+        textBlocks: selectedPageIndex >= 0 ? (extractedTextByPage[selectedPageIndex]?.length ?? 0) : 0,
+        edits: editedTextByPage.reduce((sum, map) => sum + map.size, 0),
+      }}
       onupdateobject={updateObject}
       ondeleteobject={deleteObject}
       onselectfont={selectFontFamily}
+      onupdatetextblockfont={updateSelectedTextBlockFont}
+      onupdatetextblockdimensions={updateSelectedTextBlockDimensions}
       ontoggleeditmode={toggleEditMode}
+      ontoggledebugoverlayupdate={() => {
+        debugOverlay = !debugOverlay;
+      }}
     />
   {/if}
 </main>

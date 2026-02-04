@@ -1,10 +1,23 @@
 <svelte:options immutable={true} />
 
 <script>
-  import { onMount } from 'svelte';
-  import { pannable } from '@src/utils/pannable.js';
   import DeleteIcon from '@src/assets/icons/DeleteIcon.svelte';
-  let { id, payload, file, width, height, x, y, pageScale = 1, isSelected = false, onupdate, ondelete, onselect } = $props();
+  import { pannable } from '@src/utils/pannable.js';
+  import { onMount } from 'svelte';
+  let {
+    id,
+    payload,
+    file,
+    width,
+    height,
+    x,
+    y,
+    pageScale = 1,
+    isSelected = false,
+    onupdate,
+    ondelete,
+    onselect,
+  } = $props();
   let startX = $state();
   let startY = $state();
   let canvas = $state();

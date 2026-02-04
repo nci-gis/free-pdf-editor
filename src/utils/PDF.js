@@ -1,6 +1,6 @@
 import { readAsArrayBuffer } from './asyncReader.js';
-import { fetchFont, getAsset } from './prepareAssets';
 import { noop } from './helper.js';
+import { fetchFont, getAsset } from './prepareAssets';
 
 export async function save(pdfFile, objects, editedTextByPage = [], name, onProgress = () => {}) {
   onProgress(5);

@@ -11,13 +11,24 @@
   let maxY = $state(0);
   let paths = $state([]);
   let drawing = $state(false);
+
+  // Convert viewport coordinates to canvas-relative coordinates
+  function toCanvasCoords(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  }
+
   function handlePanStart(event) {
     if (event.detail.target !== canvas) {
       return (drawing = false);
     }
     drawing = true;
-    x = event.detail.x;
-    y = event.detail.y;
+    const coords = toCanvasCoords(event.detail.x, event.detail.y);
+    x = coords.x;
+    y = coords.y;
     minX = Math.min(minX, x);
     maxX = Math.max(maxX, x);
     minY = Math.min(minY, y);
@@ -27,8 +38,9 @@
   }
   function handlePanMove(event) {
     if (!drawing) return;
-    x = event.detail.x;
-    y = event.detail.y;
+    const coords = toCanvasCoords(event.detail.x, event.detail.y);
+    x = coords.x;
+    y = coords.y;
     minX = Math.min(minX, x);
     maxX = Math.max(maxX, x);
     minY = Math.min(minY, y);
@@ -60,7 +72,13 @@
 
 <div
   bind:this={canvas}
-  use:pannable={{ onpanstart: handlePanStart, onpanmove: handlePanMove, onpanend: handlePanEnd }}
+  use:pannable={{
+    onpanstart: handlePanStart,
+    onpanmove: handlePanMove,
+    onpanend: handlePanEnd,
+    cursor: 'crosshair',
+    cursorActive: 'crosshair',
+  }}
   class="relative w-full h-full select-none"
 >
   <div class="absolute right-0 bottom-0 mr-4 mb-4 flex">

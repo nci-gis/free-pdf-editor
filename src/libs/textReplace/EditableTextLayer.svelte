@@ -1,7 +1,14 @@
 <script>
   import EditableTextBlock from './EditableTextBlock.svelte';
 
-  let { textLines = [], editedItems = new Map(), showDebugOverlay = false, ontextchange } = $props();
+  let {
+    textLines = [],
+    editedItems = new Map(),
+    showDebugOverlay = false,
+    pageScale = 1,
+    ontextchange,
+    onblockselect,
+  } = $props();
 
   let selectedBlockId = null;
   let blockRefs = {};
@@ -15,6 +22,7 @@
     }
 
     selectedBlockId = id;
+    onblockselect?.(detail);
   }
 
   function handleBlockChange(detail) {
@@ -25,11 +33,20 @@
     if (selectedBlockId && blockRefs[selectedBlockId]) {
       blockRefs[selectedBlockId].deselect();
       selectedBlockId = null;
+      onblockselect?.(null);
     }
   }
 
   function isBlockEdited(blockId) {
     return editedItems.has(blockId);
+  }
+
+  export function applyFontAndSizeToBlock(blockId, payload) {
+    blockRefs[blockId]?.applyFontAndSize(payload);
+  }
+
+  export function applyDimensionsToBlock(blockId, payload) {
+    blockRefs[blockId]?.applyDimensions(payload);
   }
 
   // Padding (in px) around each text box to fully cover original glyphs underneath
@@ -68,6 +85,7 @@
       <EditableTextBlock
         bind:this={blockRefs[line.id]}
         block={line}
+        {pageScale}
         isEdited={isBlockEdited(line.id)}
         onselect={handleBlockSelect}
         onchange={handleBlockChange}
