@@ -1,11 +1,24 @@
 <svelte:options immutable={true} />
 
 <script>
-  import { onMount } from 'svelte';
+  import { timeout } from '@src/utils/helper.js';
   import { pannable } from '@src/utils/pannable.js';
   import { tapout } from '@src/utils/tapout.js';
-  import { timeout } from '@src/utils/helper.js';
-  let { id, size, text, lineHeight, x, y, fontFamily, pageScale = 1, isSelected = false, onupdate, ondelete, onselect } = $props();
+  import { onMount } from 'svelte';
+  let {
+    id,
+    size,
+    text,
+    lineHeight,
+    x,
+    y,
+    fontFamily,
+    pageScale = 1,
+    isSelected = false,
+    onupdate,
+    ondelete: _ondelete,
+    onselect,
+  } = $props();
   let startX = $state();
   let startY = $state();
   let editable = $state();
@@ -134,16 +147,18 @@
 <!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events, element_invalid_self_closing_tag -->
 <div
   onclick={handleSelect}
-  use:tapout={{ ontapout: () => {
-    // Reset any in-progress operations when clicking outside
-    if (operation === 'edit') {
-      onBlur();
-    } else {
-      operation = '';
-      dx = 0;
-      dy = 0;
-    }
-  } }}
+  use:tapout={{
+    ontapout: () => {
+      // Reset any in-progress operations when clicking outside
+      if (operation === 'edit') {
+        onBlur();
+      } else {
+        operation = '';
+        dx = 0;
+        dy = 0;
+      }
+    },
+  }}
   class="absolute left-0 top-0 select-none"
   class:ring-2={isSelected}
   class:ring-blue-500={isSelected}

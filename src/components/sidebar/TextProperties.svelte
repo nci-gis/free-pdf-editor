@@ -1,8 +1,8 @@
 <script>
   import DeleteIcon from '@src/assets/icons/DeleteIcon.svelte';
   import LineHeightIcon from '@src/assets/icons/LineHeightIcon.svelte';
-  import TextIcon from '@src/assets/icons/TextIcon.svelte';
   import TextFamilyIcon from '@src/assets/icons/TextFamilyIcon.svelte';
+  import TextIcon from '@src/assets/icons/TextIcon.svelte';
 
   let { object, onupdate, ondelete, onselectfont, fontFamilies = [] } = $props();
 

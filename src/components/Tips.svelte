@@ -1,8 +1,8 @@
 <script>
-  import { onMount } from 'svelte';
-  import { fly, fade } from 'svelte/transition';
-  import { tapout } from '@src/utils/tapout.js';
   import { tips, TIPS_STORAGE_KEY } from '@src/config/tips.js';
+  import { tapout } from '@src/utils/tapout.js';
+  import { onMount } from 'svelte';
+  import { fade, fly } from 'svelte/transition';
 
   let { isOpen = $bindable(false) } = $props();
   let isDragging = $state(false);
@@ -163,34 +163,34 @@
 
   function handlePopupDragStart(e) {
     if (e.button !== 0) return; // Only left click
-    
+
     isPopupDragging = true;
-    
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
+
     popupDragStart = { x: clientX, y: clientY };
-    
+
     // Get current popup position from the element
     const popup = e.currentTarget.closest('.tips-popup');
     const rect = popup.getBoundingClientRect();
     popupInitialPos = { x: rect.left, y: rect.top };
-    
+
     e.preventDefault();
   }
 
   function handlePopupDragMove(e) {
     if (!isPopupDragging) return;
-    
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
+
     const dx = clientX - popupDragStart.x;
     const dy = clientY - popupDragStart.y;
-    
+
     const newX = Math.max(0, Math.min(popupInitialPos.x + dx, window.innerWidth - 320));
     const newY = Math.max(0, Math.min(popupInitialPos.y + dy, window.innerHeight - 200));
-    
+
     popupPosition = { x: newX, y: newY };
   }
 
@@ -204,7 +204,7 @@
     handlePointerMove(e);
     handlePopupDragMove(e);
   }}
-  onmouseup={(e) => {
+  onmouseup={(_e) => {
     handlePointerUp();
     handlePopupDragEnd();
   }}
@@ -212,7 +212,7 @@
     handlePointerMove(e);
     handlePopupDragMove(e);
   }}
-  ontouchend={(e) => {
+  ontouchend={(_e) => {
     handlePointerUp();
     handlePopupDragEnd();
   }}
@@ -265,7 +265,9 @@
     <div
       onmousedown={handlePopupDragStart}
       ontouchstart={handlePopupDragStart}
-      class="flex items-center justify-between px-4 py-3 bg-amber-500 text-white {isPopupDragging ? 'cursor-grabbing' : 'cursor-grab'}"
+      class="flex items-center justify-between px-4 py-3 bg-amber-500 text-white {isPopupDragging
+        ? 'cursor-grabbing'
+        : 'cursor-grab'}"
       title="Drag to move"
     >
       <div class="flex items-center gap-2">

@@ -1,6 +1,7 @@
-import { ASSET_PATHS } from '../config/assets.js';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs';
+
+import { ASSET_PATHS } from '../config/assets.js';
 
 // Create inline worker from bundled source (no separate file needed)
 const workerBlob = new Blob([pdfjsWorker], { type: 'application/javascript' });

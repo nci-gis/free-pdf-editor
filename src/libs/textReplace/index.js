@@ -11,6 +11,6 @@
 export { extractTextFromPage, groupTextIntoLines, mapToAvailableFont } from './textExtractor.js';
 
 // Svelte components
-export { default as EditableTextLayer } from './EditableTextLayer.svelte';
 export { default as EditableTextBlock } from './EditableTextBlock.svelte';
+export { default as EditableTextLayer } from './EditableTextLayer.svelte';
 export { default as WelcomeModal } from './WelcomeModal.svelte';
