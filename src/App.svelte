@@ -7,6 +7,7 @@
   import DrawingCanvas from './components/DrawingCanvas.svelte';
   import DropZone from './components/DropZone.svelte';
   import FirstLaunchModal from './components/FirstLaunchModal.svelte';
+  import HelpModal from './components/HelpModal.svelte';
   import Image from './components/Image.svelte';
   import PDFPage from './components/PDFPage.svelte';
   import Sidebar from './components/Sidebar.svelte';
@@ -16,18 +17,18 @@
   import Toast from './components/Toast.svelte';
   import { EditableTextLayer, extractTextFromPage, groupTextIntoLines, NoticeModal } from './libs/textReplace';
   import { readAsDataURL, readAsImage, readAsPDF } from './utils/asyncReader.js';
+  import {
+    getFileFromHandle,
+    getFileHandle,
+    getLastDirectory,
+    removeFileHandle,
+    storeFileHandle,
+    storeLastDirectory,
+  } from './utils/fileHandleStorage.js';
   import { ggID } from './utils/helper.js';
   import { save } from './utils/PDF.js';
   import prepareAssets, { fetchFont } from './utils/prepareAssets.js';
-  import {
-  getFileFromHandle,
-  getFileHandle,
-  getLastDirectory,
-  removeFileHandle,
-  storeFileHandle,
-  storeLastDirectory,
-} from './utils/fileHandleStorage.js';
-import { addRecentFile, clearRecentFiles, getRecentFiles, removeRecentFile } from './utils/recentFiles.js';
+  import { addRecentFile, clearRecentFiles, getRecentFiles, removeRecentFile } from './utils/recentFiles.js';
 
   const genID = ggID();
   let pdfFile = $state();
@@ -55,6 +56,7 @@ import { addRecentFile, clearRecentFiles, getRecentFiles, removeRecentFile } fro
   let showNoticeModal = $state(false); // Notice popup for replace text mode
   let showFirstLaunchModal = $state(true); // First launch welcome modal
   let showTips = $state(false); // Tips popup
+  let showHelpModal = $state(false); // Full help guide modal
 
   // Sidebar selection state
   let selectedObjectId = $state(null);
@@ -128,6 +130,7 @@ import { addRecentFile, clearRecentFiles, getRecentFiles, removeRecentFile } fro
           return groupTextIntoLines(items);
         })
       );
+      console.log('@debug extracted => ', extracted);
       extractedTextByPage = extracted;
       editedTextByPage = pages.map(() => new Map());
       editMode = true;
@@ -508,7 +511,9 @@ import { addRecentFile, clearRecentFiles, getRecentFiles, removeRecentFile } fro
 
 <NoticeModal show={showNoticeModal} onclose={() => (showNoticeModal = false)} />
 
-<Tips bind:isOpen={showTips} />
+<Tips bind:isOpen={showTips} onshowhelp={() => (showHelpModal = true)} />
+
+<HelpModal bind:show={showHelpModal} />
 
 <main class="flex h-screen pt-14 bg-gray-50">
   <!-- Modern Header -->

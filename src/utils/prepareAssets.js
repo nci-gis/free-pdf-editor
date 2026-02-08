@@ -88,6 +88,24 @@ export const Fonts = {
       return (size * lineHeight - size) / 2 + size / 10;
     },
   },
+  'Arial-Bold': {
+    src: ASSET_PATHS.fonts.arialBold,
+    correction(size, lineHeight) {
+      return (size * lineHeight - size) / 2 + size / 10;
+    },
+  },
+  'Arial-Italic': {
+    src: ASSET_PATHS.fonts.arialItalic,
+    correction(size, lineHeight) {
+      return (size * lineHeight - size) / 2 + size / 10;
+    },
+  },
+  'Arial-BoldItalic': {
+    src: ASSET_PATHS.fonts.arialBoldItalic,
+    correction(size, lineHeight) {
+      return (size * lineHeight - size) / 2 + size / 10;
+    },
+  },
   Roboto: {
     src: ASSET_PATHS.fonts.roboto,
     correction(size, lineHeight) {
@@ -143,8 +161,9 @@ export function fetchFont(name) {
   fonts[name] = fetch(font.src)
     .then((r) => r.arrayBuffer())
     .then((fontBuffer) => {
-      const fontFace = new FontFace(name, fontBuffer);
-      fontFace.display = 'swap';
+      // Each variant has its own family name (e.g. 'Arial-Bold'), so register
+      // at normal weight/style — the bold/italic comes from the font file itself
+      const fontFace = new FontFace(name, fontBuffer, { display: 'swap' });
       fontFace.load().then(() => document.fonts.add(fontFace));
       return {
         ...font,

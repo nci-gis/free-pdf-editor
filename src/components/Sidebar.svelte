@@ -344,7 +344,7 @@
             <!-- Exit Button -->
             <button
               onclick={ontoggleeditmode}
-              class="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors"
+              class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-md transition-colors"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

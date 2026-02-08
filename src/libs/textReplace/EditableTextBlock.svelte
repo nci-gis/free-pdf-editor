@@ -3,6 +3,7 @@
   import { fetchFont } from '@src/utils/prepareAssets.js';
 
   import { mapToAvailableFont } from './textExtractor.js';
+  import { measureTextWidth } from './widthMeasurement.js';
 
   let { block, isEdited = false, pageScale = 1, onselect, onchange } = $props();
 
@@ -34,8 +35,8 @@
   // Map font to available fonts
   let mappedFont = $derived(mapToAvailableFont(block.fontName));
 
-  // Estimate if text might be clipped (rough approximation)
-  let estimatedTextWidth = $derived(currentText.length * selectedFontSize * 0.6);
+  // Accurately measure if text might be clipped using canvas measurement
+  let estimatedTextWidth = $derived(measureTextWidth(currentText, selectedFontSize, selectedFont));
   let mayBeClipped = $derived(estimatedTextWidth > currentWidth * 1.1);
 
   function handleClick(e) {
@@ -172,10 +173,9 @@
       }
       isEditing = false;
       isSelected = false;
-    } else if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      finishEditing();
     }
+    // Enter key now creates newlines naturally (no handler needed)
+    // Clicking outside (blur event) saves changes
   }
 
   function finishEditing() {
@@ -348,8 +348,8 @@
     width: {currentWidth}px;
     min-height: {currentHeight}px;
     font-size: {selectedFontSize}px;
-    font-family: {selectedFont}, sans-serif;
-    line-height: 1.2;
+    font-family: '{selectedFont}', sans-serif;
+    line-height: 1.35;
   "
   class:ring-2={isSelected}
   class:ring-blue-500={isSelected && !isEdited}
@@ -380,7 +380,7 @@
     <div
       bind:this={editableEl}
       contenteditable="true"
-      class="outline-none px-1 whitespace-pre-wrap"
+      class="outline-none px-1 whitespace-pre-wrap overflow-visible"
       onblur={handleBlur}
       onkeydown={handleKeydown}
       role="textbox"
@@ -389,7 +389,7 @@
       {currentText}
     </div>
   {:else}
-    <div class="px-1 whitespace-pre-wrap" class:opacity-70={!isSelected && !isEdited}>
+    <div class="px-1 whitespace-pre-wrap overflow-visible" class:opacity-70={!isSelected && !isEdited}>
       {currentText}
       {#if isEdited}
         <span class="absolute -top-2 -right-2 bg-amber-500 text-white text-xs px-1 rounded" style="font-size: 10px;">
