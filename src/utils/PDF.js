@@ -2,7 +2,8 @@ import { readAsArrayBuffer } from './asyncReader.js';
 import { noop } from './helper.js';
 import { fetchFont, getAsset } from './prepareAssets';
 
-export async function save(pdfFile, objects, editedTextByPage = [], name, onProgress = () => {}) {
+export async function save(pdfFile, objects, editedTextByPage, name, onProgress = () => {}) {
+  editedTextByPage = editedTextByPage || [];
   onProgress(5);
   const PDFLib = await getAsset('PDFLib');
   const download = await getAsset('download');
@@ -136,14 +137,14 @@ async function processEditedText(page, pdfDoc, editedText, pageHeight, PDFLib, m
     });
 
     // 2. Draw new text on top (if not empty)
-    if (newText && newText.trim()) {
+    if (newText?.trim()) {
       try {
-        const font = await fetchFont(fontName || 'Helvetica');
+        const font = await fetchFont(fontName || 'Arial');
         const textFontSize = fontSize || 12;
-        const lineHeight = 1.2;
-        const lines = [newText];
-        const textHeight = textFontSize * lineHeight;
-        const textWidth = bounds.width + 20; // Add some extra width
+        const lineHeight = 1.35;
+        const lines = wrapText(newText, textFontSize, bounds.width);
+        const textWidth = bounds.width;
+        const textHeight = bounds.height;
 
         const [textPage] = await pdfDoc.embedPdf(
           await makeTextPDF({
@@ -152,7 +153,7 @@ async function processEditedText(page, pdfDoc, editedText, pageHeight, PDFLib, m
             lineHeight,
             width: textWidth,
             height: textHeight,
-            font: font.buffer || fontName || 'Helvetica',
+            font: font.buffer || fontName || 'Arial',
             dy: font.correction(textFontSize, lineHeight),
           })
         );
@@ -168,4 +169,36 @@ async function processEditedText(page, pdfDoc, editedText, pageHeight, PDFLib, m
       }
     }
   }
+}
+
+/**
+ * Word-wrap text to fit within a given width using canvas measurement
+ * Splits on explicit newlines first, then wraps each paragraph by word
+ */
+function wrapText(text, fontSize, maxWidth) {
+  const ctx = document.createElement('canvas').getContext('2d');
+  ctx.font = `${fontSize}px sans-serif`;
+
+  const result = [];
+  for (const paragraph of text.split('\n')) {
+    const words = paragraph.split(/\s+/);
+    if (!words.length || (words.length === 1 && !words[0])) {
+      result.push('');
+      continue;
+    }
+
+    let line = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const test = `${line} ${words[i]}`;
+      if (ctx.measureText(test).width <= maxWidth) {
+        line = test;
+      } else {
+        result.push(line);
+        line = words[i];
+      }
+    }
+    result.push(line);
+  }
+
+  return result;
 }

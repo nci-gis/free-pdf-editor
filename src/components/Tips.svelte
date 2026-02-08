@@ -4,7 +4,7 @@
   import { onMount } from 'svelte';
   import { fade, fly } from 'svelte/transition';
 
-  let { isOpen = $bindable(false) } = $props();
+  let { isOpen = $bindable(false), onshowhelp } = $props();
   let isDragging = $state(false);
   let hasMoved = $state(false);
   let buttonEl = $state();
@@ -226,7 +226,7 @@
     onclick={handleClick}
     class="w-12 h-12 rounded-full bg-amber-500 hover:bg-amber-600 active:bg-amber-700
     text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center
-    {isDragging ? 'cursor-grabbing scale-110' : 'cursor-grab'}"
+    {isDragging ? 'cursor-move scale-110' : 'cursor-pointer'}"
     title="Quick Tips - Press F1 (drag to move)"
     aria-label="Show tips"
   >
@@ -266,8 +266,8 @@
       onmousedown={handlePopupDragStart}
       ontouchstart={handlePopupDragStart}
       class="flex items-center justify-between px-4 py-3 bg-amber-500 text-white {isPopupDragging
-        ? 'cursor-grabbing'
-        : 'cursor-grab'}"
+        ? 'cursor-move'
+        : 'cursor-pointer'}"
       title="Drag to move"
     >
       <div class="flex items-center gap-2">
@@ -312,15 +312,23 @@
     <!-- Footer -->
     <div class="px-4 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
       <p class="text-xs text-gray-400">Press F1 to toggle</p>
-      {#if position.x !== null}
+      <div class="flex items-center gap-3">
         <button
-          onclick={resetPosition}
-          class="text-xs text-gray-400 hover:text-gray-600 underline"
-          title="Reset button to default position"
+          onclick={() => { close(); onshowhelp?.(); }}
+          class="text-xs text-blue-500 hover:text-blue-700 font-medium"
         >
-          Reset position
+          View Full Guide
         </button>
-      {/if}
+        {#if position.x !== null}
+          <button
+            onclick={resetPosition}
+            class="text-xs text-gray-400 hover:text-gray-600 underline"
+            title="Reset button to default position"
+          >
+            Reset position
+          </button>
+        {/if}
+      </div>
     </div>
   </div>
 {/if}

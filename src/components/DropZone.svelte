@@ -1,5 +1,6 @@
 <script>
   import { fade, scale } from 'svelte/transition';
+
   import { getLastDirectory, storeLastDirectory } from '../utils/fileHandleStorage.js';
 
   let { recentFiles = [], loading = false, onupload, onrecent, onremoverecent, onclearall } = $props();

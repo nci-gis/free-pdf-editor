@@ -50,7 +50,10 @@
   }
 
   // Padding (in px) around each text box to fully cover original glyphs underneath
-  const MASK_PADDING = 3;
+  // Dynamic padding based on font size for better coverage
+  function getMaskPadding(fontSize) {
+    return Math.max(3, Math.ceil(fontSize * 0.15));
+  }
 </script>
 
 <div
@@ -69,13 +72,14 @@
     <!-- Mask the original rendered text so edited text doesn't overlap visually -->
     <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
       {#each textLines as line (line.id)}
+        {@const padding = getMaskPadding(line.fontSize)}
         <div
           class="absolute bg-white"
           style="
-            left: {line.x - MASK_PADDING}px;
-            top: {line.y - MASK_PADDING}px;
-            width: {line.width + MASK_PADDING * 2}px;
-            height: {line.height + MASK_PADDING * 2}px;
+            left: {line.x - padding}px;
+            top: {line.y - padding}px;
+            width: {line.width + padding * 2}px;
+            height: {line.height + padding * 2}px;
           "
         ></div>
       {/each}

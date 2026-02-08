@@ -161,5 +161,12 @@ If you plan to submit a pull request:
 
 ## 📄 Disclaimer
 
-This software is provided **“as is”**, without warranty of any kind.  
-Use at your own risk.
+This software is provided **“as is”**, without warranty of any kind, express or implied.
+
+This project is intended for **personal, educational, and legitimate document editing purposes**.  
+Users are solely responsible for ensuring they have the legal right to view, edit, or modify any PDF documents they use with this tool.
+
+Editing certain documents — including but not limited to **signed, certified, official, or legally binding PDFs** — may invalidate their legal status.
+The authors and contributors of this project assume **no responsibility or liability** for misuse of the software or for any consequences resulting from edited documents.
+
+This tool does **not** attempt to bypass DRM, encryption, or document security restrictions.

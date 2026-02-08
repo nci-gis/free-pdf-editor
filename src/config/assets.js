@@ -12,6 +12,9 @@ export const ASSET_PATHS = {
   fonts: {
     chinese: `${BASE_PATH}/assets/fonts/CK.ttf`,
     arial: `${BASE_PATH}/assets/fonts/ARIAL.TTF`,
+    arialBold: `${BASE_PATH}/assets/fonts/ARIALBD.TTF`,
+    arialItalic: `${BASE_PATH}/assets/fonts/ARIALI.TTF`,
+    arialBoldItalic: `${BASE_PATH}/assets/fonts/ARIALBI.TTF`,
     // Sans-serif
     roboto: `${BASE_PATH}/assets/fonts/Roboto-Regular.ttf`,
     openSans: `${BASE_PATH}/assets/fonts/OpenSans-Regular.ttf`,

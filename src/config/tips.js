@@ -24,21 +24,21 @@ export const tips = [
     title: 'Draw',
     description: 'Click the pencil icon to draw signatures or annotations',
   },
-  {
-    icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>`,
-    title: 'Move Elements',
-    description: 'Click and drag any element to reposition it on the page',
-  },
-  {
-    icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>`,
-    title: 'Resize',
-    description: 'Drag corner handles to resize images and drawings',
-  },
-  {
-    icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>`,
-    title: 'Hold Shift',
-    description: 'Hold Shift while resizing to maintain aspect ratio',
-  },
+  // {
+  //   icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/>`,
+  //   title: 'Move Elements',
+  //   description: 'Click and drag any element to reposition it on the page',
+  // },
+  // {
+  //   icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>`,
+  //   title: 'Resize',
+  //   description: 'Drag corner handles to resize images and drawings',
+  // },
+  // {
+  //   icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>`,
+  //   title: 'Hold Shift',
+  //   description: 'Hold Shift while resizing to maintain aspect ratio',
+  // },
   {
     icon: `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>`,
     title: 'Save PDF',

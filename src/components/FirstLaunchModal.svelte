@@ -151,9 +151,7 @@
 
       <!-- Footer -->
       <div class="px-6 py-4 bg-gray-50 flex justify-between items-center">
-        <span class="text-xs text-gray-500">
-          This message shows once
-        </span>
+        <span class="text-xs text-gray-500"> This message shows once </span>
         <button
           onclick={handleConfirm}
           class="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg
