@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 
 - Simple AI agent context enhancement
 - Improve README for non-technical users and clarify text editing feature
+- Update CHANGELOG.md for v0.0.1
 
 ### Features
 
