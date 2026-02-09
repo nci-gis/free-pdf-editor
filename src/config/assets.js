@@ -10,7 +10,6 @@ export const ASSET_PATHS = {
     makeTextPDF: `${BASE_PATH}/assets/vendor/makeTextPDF.js`,
   },
   fonts: {
-    chinese: `${BASE_PATH}/assets/fonts/CK.ttf`,
     arial: `${BASE_PATH}/assets/fonts/ARIAL.TTF`,
     arialBold: `${BASE_PATH}/assets/fonts/ARIALBD.TTF`,
     arialItalic: `${BASE_PATH}/assets/fonts/ARIALI.TTF`,
