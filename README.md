@@ -62,7 +62,7 @@ You can also host this as a simple static website:
 - Cloudflare Pages
 - Any local or shared web server
 
-Upload the contents of the `dist/` folder.
+Upload the contents of the `public/` folder.
 
 ---
 
@@ -124,7 +124,7 @@ SOFTWARE.
 
 ## For developers
 
-Project structure:
+### Project structure
 
 ```text
 public/
@@ -137,6 +137,47 @@ src/
 docs/          # Project documentation
 README.md
 ```
+
+### Creating a release
+
+To create a new release for users to download:
+
+1. Update version in `package.json`
+2. Commit changes: `git commit -m "chore: bump version to v1.0.0"`
+3. Create and push tag:
+
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+4. GitHub Actions will automatically:
+   - Build the project
+   - Create a ZIP file
+   - Publish it as a GitHub Release
+
+Users can then download from the Releases page.
+
+### Development workflow
+
+```bash
+pnpm install       # Install dependencies
+pnpm dev          # Start dev server with hot reload
+pnpm build        # Build for production
+pnpm start        # Serve production build locally
+```
+
+### Commit conventions
+
+We use [Conventional Commits](https://www.conventionalcommits.org/) for automatic changelog generation with [git-cliff](https://git-cliff.org/):
+
+```text
+feat: add new feature
+fix: resolve bug
+docs: update documentation
+```
+
+The `cliff.toml` configuration file controls changelog formatting.
 
 ---
 
