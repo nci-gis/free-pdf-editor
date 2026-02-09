@@ -314,7 +314,10 @@
       <p class="text-xs text-gray-400">Press F1 to toggle</p>
       <div class="flex items-center gap-3">
         <button
-          onclick={() => { close(); onshowhelp?.(); }}
+          onclick={() => {
+            close();
+            onshowhelp?.();
+          }}
           class="text-xs text-blue-500 hover:text-blue-700 font-medium"
         >
           View Full Guide

@@ -1,6 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs';
 
+import { loadEmbeddedFont } from '../assets/fonts.js';
 import { ASSET_PATHS } from '../config/assets.js';
 
 // Create inline worker from bundled source (no separate file needed)
@@ -38,7 +39,7 @@ export function prepareAsset({ name, src }) {
       console.log(`${name} is loaded.`);
     };
     script.onerror = () => {
-      reject(`The script ${name} didn't load correctly.`);
+      reject(new Error(`The script ${name} didn't load correctly.`));
       alert(`Some scripts did not load correctly. Please reload and try again.`);
     };
     document.body.appendChild(script);
@@ -71,75 +72,69 @@ const fonts = {
   },
 };
 
-// Available fonts
+// Available fonts (now use embedded base64 fonts, no fetch needed!)
+// Note: Chinese font removed - users can import it via "Import Font" button in sidebar
 export const Fonts = {
   ...fonts,
-  // Chinese
-  標楷體: {
-    src: ASSET_PATHS.fonts.chinese,
-    correction(size, lineHeight) {
-      return (size * lineHeight - size) / 2;
-    },
-  },
   // Sans-serif fonts
   Arial: {
-    src: ASSET_PATHS.fonts.arial,
+    embedded: 'arial',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 10;
     },
   },
   'Arial-Bold': {
-    src: ASSET_PATHS.fonts.arialBold,
+    embedded: 'arialBold',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 10;
     },
   },
   'Arial-Italic': {
-    src: ASSET_PATHS.fonts.arialItalic,
+    embedded: 'arialItalic',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 10;
     },
   },
   'Arial-BoldItalic': {
-    src: ASSET_PATHS.fonts.arialBoldItalic,
+    embedded: 'arialBoldItalic',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 10;
     },
   },
   Roboto: {
-    src: ASSET_PATHS.fonts.roboto,
+    embedded: 'roboto',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 10;
     },
   },
   'Open Sans': {
-    src: ASSET_PATHS.fonts.openSans,
+    embedded: 'openSans',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 10;
     },
   },
   Lato: {
-    src: ASSET_PATHS.fonts.lato,
+    embedded: 'lato',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 10;
     },
   },
   // Serif fonts
   Merriweather: {
-    src: ASSET_PATHS.fonts.merriweather,
+    embedded: 'merriweather',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 7;
     },
   },
   // Monospace fonts
   'Roboto Mono': {
-    src: ASSET_PATHS.fonts.robotoMono,
+    embedded: 'robotoMono',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 6;
     },
   },
   'Source Code Pro': {
-    src: ASSET_PATHS.fonts.sourceCodePro,
+    embedded: 'sourceCodePro',
     correction(size, lineHeight) {
       return (size * lineHeight - size) / 2 + size / 6;
     },
@@ -151,26 +146,85 @@ export function fetchFont(name) {
   const font = Fonts[name];
   if (!font) throw new Error(`Font '${name}' not exists.`);
 
-  // Custom fonts already have buffer loaded
+  // Custom fonts already have buffer loaded (e.g., user-uploaded fonts)
   if (font.buffer) {
     fonts[name] = Promise.resolve(font);
     return fonts[name];
   }
 
-  // Built-in fonts need to be fetched
-  fonts[name] = fetch(font.src)
-    .then((r) => r.arrayBuffer())
-    .then((fontBuffer) => {
-      // Each variant has its own family name (e.g. 'Arial-Bold'), so register
-      // at normal weight/style — the bold/italic comes from the font file itself
-      const fontFace = new FontFace(name, fontBuffer, { display: 'swap' });
-      fontFace.load().then(() => document.fonts.add(fontFace));
-      return {
-        ...font,
-        buffer: fontBuffer,
-      };
-    });
+  // Load embedded fonts (bundled as base64, no fetch needed!)
+  if (font.embedded) {
+    fonts[name] = loadEmbeddedFont(font.embedded)
+      .then((fontBuffer) => {
+        // Register font for browser rendering
+        const fontFace = new FontFace(name, fontBuffer, { display: 'swap' });
+        fontFace.load().then(() => document.fonts.add(fontFace));
+        return {
+          ...font,
+          buffer: fontBuffer,
+        };
+      })
+      .catch((error) => {
+        console.error(`Failed to load embedded font '${name}':`, error);
+        // Fallback to built-in PDF font
+        const fallbackName = getFallbackFont(name);
+        return Fonts[fallbackName];
+      });
+    return fonts[name];
+  }
+
+  // Fallback: fetch from URL (for legacy/custom fonts not embedded)
+  if (font.src) {
+    fonts[name] = fetch(font.src)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.arrayBuffer();
+      })
+      .then((fontBuffer) => {
+        const fontFace = new FontFace(name, fontBuffer, { display: 'swap' });
+        fontFace.load().then(() => document.fonts.add(fontFace));
+        return {
+          ...font,
+          buffer: fontBuffer,
+        };
+      })
+      .catch((error) => {
+        console.warn(`Failed to fetch font '${name}': ${error.message}. Using fallback.`);
+        const fallbackName = getFallbackFont(name);
+        return Fonts[fallbackName];
+      });
+    return fonts[name];
+  }
+
+  // No loading needed (built-in PDF fonts like Helvetica, Courier, Times-Roman)
+  fonts[name] = Promise.resolve(font);
   return fonts[name];
+}
+
+/**
+ * Map custom fonts to built-in PDF fonts (Helvetica, Times-Roman, Courier)
+ * These fonts don't need fetching and work in file:// protocol
+ */
+function getFallbackFont(fontName) {
+  // Sans-serif fonts → Helvetica
+  if (
+    fontName.includes('Arial') ||
+    fontName.includes('Roboto') ||
+    fontName.includes('Sans') ||
+    fontName.includes('Lato')
+  ) {
+    return 'Helvetica';
+  }
+  // Monospace fonts → Courier
+  if (fontName.includes('Mono') || fontName.includes('Code') || fontName.includes('Courier')) {
+    return 'Courier';
+  }
+  // Serif fonts → Times-Roman
+  if (fontName.includes('Times') || fontName.includes('Merriweather') || fontName.includes('Serif')) {
+    return 'Times-Roman';
+  }
+  // Default fallback
+  return 'Helvetica';
 }
 
 /**

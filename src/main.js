@@ -1,3 +1,5 @@
+// Inspired by https://github.com/ShizukuIchi/pdf-editor (MIT License)
+
 import { mount } from 'svelte';
 
 import App from './App.svelte';

@@ -71,6 +71,7 @@
   onMount(() => {
     recentFiles = getRecentFiles();
     prepareAssets();
+    // Note: Fonts are now embedded in bundle, so file:// protocol works perfectly!
   });
 
   function showToast(message, type = 'success', duration = 3000) {

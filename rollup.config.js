@@ -9,6 +9,7 @@ import { sveltePreprocess } from 'svelte-preprocess';
 import css from 'rollup-plugin-css-only';
 import copy from 'rollup-plugin-copy';
 import { string } from 'rollup-plugin-string';
+import url from '@rollup/plugin-url';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -52,6 +53,13 @@ export default {
       include: '**/pdf.worker*.mjs',
     }),
 
+    // Import fonts as base64 data URLs (embeds in bundle, avoids CORS/fetch issues)
+    url({
+      include: ['**/*.ttf', '**/*.TTF'],
+      limit: Infinity, // Always inline (no size limit)
+      emitFiles: false, // Don't emit separate files, inline in bundle
+    }),
+
     resolve({
       browser: true,
       dedupe: ['svelte'],
@@ -60,11 +68,9 @@ export default {
     commonjs(),
 
     // Copy static assets from src/ to public/assets/
+    // Note: Fonts are embedded in bundle, no need to copy
     copy({
-      targets: [
-        { src: 'src/vendor/*', dest: 'public/assets/vendor' },
-        { src: 'src/assets/fonts/*', dest: 'public/assets/fonts' },
-      ],
+      targets: [{ src: 'src/vendor/*', dest: 'public/assets/vendor' }],
       hook: 'writeBundle',
       copyOnce: true, // Only copy once in watch mode to prevent rebuild loops
     }),
