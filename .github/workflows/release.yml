@@ -1,0 +1,124 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v1.2.3
+  workflow_dispatch:  # Allow manual trigger for testing
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to create releases
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build project
+        run: pnpm build
+
+      - name: Get version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Create distribution ZIP
+        run: |
+          cd public
+          zip -r ../free-pdf-editor-${{ steps.version.outputs.version }}.zip .
+          cd ..
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+
+      - name: Generate changelog with git-cliff
+        run: |
+          # Generate full CHANGELOG.md
+          git cliff --tag ${{ steps.version.outputs.version }} -o CHANGELOG.md
+
+          # Generate release notes for this version only
+          git cliff --tag ${{ steps.version.outputs.version }} --unreleased --strip all > release_notes_cliff.md
+
+      - name: Prepare release notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          ## 🚀 Free PDF Editor ${{ steps.version.outputs.version }}
+
+          ### 📦 Download and Use
+
+          1. **Download** the ZIP file below (`free-pdf-editor-${{ steps.version.outputs.version }}.zip`)
+          2. **Extract** the ZIP file to any location on your computer
+          3. **Open** `index.html` in your browser (Chrome or Edge recommended)
+          4. **Start editing** your PDFs!
+
+          ### ✨ What's New
+
+          EOF
+
+          # Append git-cliff generated changelog
+          cat release_notes_cliff.md >> release_notes.md
+
+          cat >> release_notes.md << 'EOF'
+
+          ---
+
+          ### 📝 Full Changelog
+
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ steps.version.outputs.version }}/CHANGELOG.md) for complete history.
+
+          **Full Diff**: https://github.com/${{ github.repository }}/compare/${{ steps.version.outputs.version }}...HEAD
+          EOF
+
+      - name: Commit CHANGELOG.md
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "docs: update CHANGELOG.md for ${{ steps.version.outputs.version }}" || echo "No changes to commit"
+          git push origin HEAD:main || echo "Failed to push changelog"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          files: |
+            free-pdf-editor-${{ steps.version.outputs.version }}.zip
+            CHANGELOG.md
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
