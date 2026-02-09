@@ -1,41 +1,88 @@
 # Free PDF Editor
 
-A lightweight, fully client-side PDF editor built as a static web application.  
-All functionality runs directly in the browser — **no backend, no uploads, no tracking**.
+Edit PDFs right in your browser. No installs. No uploads. No tracking.
 
-This project focuses on simplicity, offline usage, and ease of deployment.
-
----
-
-## ✨ Features
-
-- View PDF documents directly in the browser
-- Draw, annotate, and mark up PDF pages
-- Client-side rendering (no server required)
-- Works offline once loaded
-- Simple static deployment
+- Works offline after you download it
+- Your files stay on your computer
+- Simple, lightweight, and fast
 
 ---
 
-## 📌 Motivation & Attribution
+## Download and use (3 easy steps)
 
-This project was **inspired by and motivated by** the following open-source repository:
+1) Download the latest release
+   - Go to the Releases page and download the newest ZIP file
 
-- **pdf-editor** by **ShizukuIchi**  
-  https://github.com/ShizukuIchi/pdf-editor  
+2) Extract the ZIP file
+   - Right-click the ZIP and choose "Extract All"
 
-That project is licensed under the **MIT License**, which allows reuse, modification, and redistribution with attribution.
+3) Open the app
+   - Open the extracted folder and double-click `index.html`
+   - Recommended browsers: Chrome or Edge
 
-This repository respects and complies with the MIT License terms.  
-While the implementation and structure may differ, the original project served as an important reference and inspiration.
+That is it. Load a PDF and start editing.
 
 ---
 
-## 📜 License
+## If the app does not open correctly
 
-This project is released under the **MIT License**.
+Some browsers limit features when opening files directly from your computer.
 
-Portions of the ideas, design concepts, and approach were inspired by work originally authored by **ShizukuIchi (© 2020)** and licensed under the MIT License.
+Try these fixes:
+
+- Use Chrome or Edge
+- If you still have issues, run a simple local web server (see "Static Deployment" below)
+
+---
+
+## What you can do
+
+- Open and view PDFs
+- Draw, annotate, and mark up pages
+- Simple text editing (adds text on top of the PDF)
+- Work completely offline
+
+---
+
+## Privacy and security
+
+- No files are uploaded
+- Everything happens in your browser
+- No analytics or tracking
+
+---
+
+## Static Deployment (optional)
+
+You can also host this as a simple static website:
+
+- GitHub Pages
+- Netlify
+- Vercel
+- Cloudflare Pages
+- Any local or shared web server
+
+Upload the contents of the `dist/` folder.
+
+---
+
+## Credits and attribution
+
+This project was inspired by:
+
+- pdf-editor by ShizukuIchi
+  <https://github.com/ShizukuIchi/pdf-editor>
+
+This repository respects the MIT License terms of the original project.
+
+---
+
+## License
+
+This project is released under the MIT License.
+
+Portions of the ideas, design concepts, and approach were inspired by work
+originally authored by ShizukuIchi (c 2020) and licensed under the MIT License.
 
 A copy of the original MIT License is included below, as required.
 
@@ -68,105 +115,43 @@ SOFTWARE.
 
 ---
 
-## 📦 Third-Party Dependencies
+## Third-party dependencies
 
-This project relies on several open-source JavaScript libraries for PDF rendering, editing, and file handling.
-
-- 📄 **Dependency overview & usage**:  
-  [`docs/Dependencies.md`](docs/Dependencies.md)
-
-- ⚖️ **Third-party license texts**:  
-  [`3rd-party-licenses.md.md`](3rd-party-licenses.md.md)
-
-All dependencies are used in compliance with their respective licenses.
+- Dependency overview: `docs/Dependencies.md`
+- License texts: `3rd-party-licenses.md.md`
 
 ---
 
-## 🚀 Static Deployment
+## For developers
 
-This project is designed to be deployed as a **static site**.
-
-### Option 1: Local Usage
-
-1. Clone or download this repository
-2. Open `public/index.html` directly in **Chrome** or **Edge**
-3. All features work immediately — no build step required
-
-### Option 2: Static Hosting
-
-You can deploy this project on any static hosting platform:
-
-- GitHub Pages
-- Netlify
-- Vercel
-- Cloudflare Pages
-- Local file system
-
-Simply upload the contents of the `public/` directory (and referenced assets).
-
----
-
-## 🗂 Project Structure
+Project structure:
 
 ```text
-├── public/
-│ ├── index.html # Entry point
-│ └── assets/ # Built/static assets
-├── src/
-│ ├── components/ # Svelte UI components
-│ │ ├── Toolbar
-│ │ ├── PDFPage
-│ │ └── Drawing
-│ ├── utils/ # Utility modules
-│ └── assets/ # Icons and images
-├── docs/ # Project documentation & analysis
-└── README.md
+public/
+  index.html  # Entry point
+  assets/     # Built/static assets
+src/
+  components/ # Svelte UI components
+  utils/      # Utility modules
+  assets/     # Icons and images
+docs/          # Project documentation
+README.md
 ```
 
-### Key Directories
-
-- **`src/components/`** – UI components (toolbar, PDF pages, drawing tools)
-- **`src/utils/`** – Shared utility logic (see `src/utils/README.md`)
-- **`public/`** – Static entry point and build output
-- **`docs/`** – Design notes, refactor plans, and technical documentation
-
 ---
 
-## 🔒 Privacy & Security
+## Disclaimer
 
-- No files are uploaded to any server
-- PDFs are processed entirely in your browser
-- No analytics, no tracking, no telemetry
+This software is provided "as is", without warranty of any kind.
 
----
+This project is intended for personal, educational, and legitimate document
+editing purposes. Users are responsible for ensuring they have the legal right
+to view or edit any PDF documents they use with this tool.
 
-## 🤝 Contributing
+Editing certain documents (signed, certified, official, or legally binding
+PDFs) may invalidate their legal status. The authors and contributors assume no
+responsibility for misuse of the software or for any consequences resulting
+from edited documents.
 
-Contributions are welcome!
-
-If you plan to submit a pull request:
-
-- Keep changes client-side only
-- Avoid adding backend dependencies
-- Preserve license headers and attribution
-
----
-
-## 🙏 Credits
-
-- **ShizukuIchi** — original inspiration and reference project  
-  https://github.com/ShizukuIchi/pdf-editor
-
----
-
-## 📄 Disclaimer
-
-This software is provided **“as is”**, without warranty of any kind, express or implied.
-
-This project is intended for **personal, educational, and legitimate document editing purposes**.  
-Users are solely responsible for ensuring they have the legal right to view, edit, or modify any PDF documents they use with this tool.
-
-Editing certain documents — including but not limited to **signed, certified, official, or legally binding PDFs** — may invalidate their legal status.
-The authors and contributors of this project assume **no responsibility or liability** for misuse of the software or for any consequences resulting from edited documents.
-
-This tool does **not** attempt to bypass DRM, encryption, or document security restrictions.
+This tool does not attempt to bypass DRM, encryption, or document security
+restrictions.
